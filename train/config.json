@@ -1,23 +1,24 @@
 {
-  "name": "Train MMSegmentation",
+  "name": "Train MMDetection",
   "type": "app",
   "categories": [
     "open-mmlab",
     "neural network",
-    "semantic segmentation"
+    "object detection",
+    "instance segmentation"
   ],
   "description": "Dashboard to configure, start and monitor training",
-  "docker_image": "supervisely/mmseg:1.1.0",
+  "docker_image": "supervisely/mmdet:1.0.0",
   "main_script": "train/src/main.py",
   "gui_template": "train/src/gui.html",
   "task_location": "workspace_tasks",
   "need_gpu": true,
   "isolate": true,
-  "icon": "https://i.imgur.com/GaEFmkH.png",
+  "icon": "",
   "icon_cover": true,
   "context_menu": {
     "target": ["images_project"],
     "context_root": "Neural Networks",
-    "context_category": "MM Segmentation"
+    "context_category": "MMDetection"
   }
 }

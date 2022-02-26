@@ -1,3 +1,9 @@
 train/secret_debug.env
 serve/secret_debug.env
 configs
+checkpoints
+cache
+data
+train/src/__pycache__
+train/src/ui/__pycache__
+.vscode
