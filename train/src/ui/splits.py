@@ -1,12 +1,13 @@
 import supervisely as sly
 import sly_globals as g
 import os
+from input_project import get_image_info_from_cache
 
 train_set = None
 val_set = None
 
-train_set_path = os.path.join(g.project_seg_dir, "splits", "train.txt")
-val_set_path = os.path.join(g.project_seg_dir, "splits", "val.txt")
+train_set_path = os.path.join(g.my_app.data_dir, "train.json")
+val_set_path = os.path.join(g.my_app.data_dir, "val.json")
 
 def init(project_info, project_meta: sly.ProjectMeta, data, state):
     data["randomSplit"] = [
@@ -48,6 +49,8 @@ def init(project_info, project_meta: sly.ProjectMeta, data, state):
     state["splitInProgress"] = False
     state["trainImagesCount"] = None
     state["valImagesCount"] = None
+    state["fullTrainImagesCount"] = None
+    state["fullValImagesCount"] = None
     data["done2"] = False
     state["collapsed2"] = True
     state["disabled2"] = True
@@ -83,39 +86,45 @@ def verify_train_val_sets(train_set, val_set):
         raise ValueError("Val set is empty, check or change split configuration")
 
 
-def set_dataset_ind_to_items(project_dir):
-    datasets = os.listdir(project_dir)
-    ds_cnt = 0
-    for dataset in datasets:
-        if not os.path.isdir(os.path.join(project_dir, dataset)):
-            continue # meta.json
+def remove_empty_items(split):
+    items_to_include = []
+    for item in split:
+        img_info = get_image_info_from_cache(item.dataset_name, item.name)
+        if img_info.labels_count > 0:
+            items_to_include.append(item)
+    return items_to_include
 
-        img_dir = os.path.join(project_dir, dataset, "img")
-        ann_dir = os.path.join(project_dir, dataset, "ann")
-        for file in os.listdir(img_dir):
-            os.rename(os.path.join(img_dir, file), os.path.join(img_dir, f"{ds_cnt}_{file}"))
-        for file in os.listdir(ann_dir):
-            os.rename(os.path.join(ann_dir, file), os.path.join(ann_dir, f"{ds_cnt}_{file}"))
-        ds_cnt += 1
 
 @g.my_app.callback("create_splits")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def create_splits(api: sly.Api, task_id, context, state, app_logger):
     step_done = False
+    train_len = None
+    val_len = None
     global train_set, val_set
     try:
         api.task.set_field(task_id, "state.splitInProgress", True)
-        # to support duplicates
-        set_dataset_ind_to_items(g.project_dir)
+        
         train_set, val_set = get_train_val_sets(g.project_dir, state)
         sly.logger.info(f"Train set: {len(train_set)} images")
         sly.logger.info(f"Val set: {len(val_set)} images")
+        train_len = len(train_set)
+        train_set = remove_empty_items(train_set)
+        sly.logger.info(f"Found {train_len - len(train_set)} images without labels in train set.")
+        sly.logger.info(f"{len(train_set)} / {train_len} images will be included to train.")
+        val_len = len(val_set)
+        val_set = remove_empty_items(val_set)
+        sly.logger.info(f"Found {val_len - len(val_set)} images without labels in validation set.")
+        sly.logger.info(f"{len(val_set)} / {val_len} images will be included to validation.")
+        
         verify_train_val_sets(train_set, val_set)
         step_done = True
     except Exception as e:
         train_set = None
         val_set = None
+        train_len = None
+        val_len = None
         step_done = False
         raise e
     finally:
@@ -125,20 +134,27 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             {"field": f"data.done2", "payload": step_done},
             {"field": f"state.trainImagesCount", "payload": None if train_set is None else len(train_set)},
             {"field": f"state.valImagesCount", "payload": None if val_set is None else len(val_set)},
+            {"field": f"state.fullTrainImagesCount", "payload": train_len},
+            {"field": f"state.fullValImagesCount", "payload": val_len},
         ]
         if step_done is True:
             fields.extend([
-                {"field": "state.collapsed3", "payload": False},
-                {"field": "state.disabled3", "payload": False},
-                {"field": "state.activeStep", "payload": 3},
+                {"field": "state.collapsed7", "payload": False},
+                {"field": "state.disabled7", "payload": False},
+                {"field": "state.activeStep", "payload": 7},
             ])
         g.api.app.set_fields(g.task_id, fields)
     if train_set is not None:
-        _save_set(train_set_path, train_set)
+        _save_set_to_json(train_set_path, train_set)
     if val_set is not None:
-        _save_set(val_set_path, val_set)
+        _save_set_to_json(val_set_path, val_set)
 
-def _save_set(save_path, items):
+def _save_set_to_json(save_path, items):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    with open(os.path.join(save_path), 'w') as f:
-        f.writelines(item.name + '\n' for item in items)
+    res = []
+    for item in items:
+        res.append({
+            "dataset_name": item.dataset_name,
+            "item_name": item.name
+        })
+    sly.json.dump_json_file(res, save_path)

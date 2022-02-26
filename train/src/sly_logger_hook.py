@@ -4,7 +4,7 @@ from mmcv.runner.hooks.logger.text import TextLoggerHook
 import supervisely_lib as sly
 from sly_train_progress import get_progress_cb, set_progress, add_progress_to_request
 import sly_globals as g
-import classes as cls
+# import classes as cls
 
 
 @HOOKS.register_module()
@@ -21,6 +21,8 @@ class SuperviselyLoggerHook(TextLoggerHook):
         self._lrs = []
 
     def _log_info(self, log_dict, runner):
+        super(SuperviselyLoggerHook, self)._log_info(log_dict, runner)
+        """
         if log_dict['mode'] == 'train' and 'time' in log_dict.keys():
             self.time_sec_tot += (log_dict['time'] * self.interval)
             time_sec_avg = self.time_sec_tot / (runner.iter - self.start_iter + 1)
@@ -106,3 +108,4 @@ class SuperviselyLoggerHook(TextLoggerHook):
         except Exception as e:
             print("Unabled to write metrics to chart!")
             print(e)
+        """

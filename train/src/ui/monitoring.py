@@ -6,11 +6,15 @@ import shutil
 import cv2
 import numpy as np
 from functools import partial
+import mmcv
 from mmcv.cnn.utils import revert_sync_batchnorm
-from mmseg.apis import train_segmentor
-from mmseg.datasets import build_dataset
-from mmseg.models import build_segmentor
-from init_cfg import init_cfg
+from mmdet.apis import train_detector, set_random_seed, inference_detector
+from mmdet.datasets import build_dataset
+from mmdet.models import build_detector
+# from init_cfg import init_cfg
+from mmcv import Config
+import splits
+import json
 
 # ! required to be left here despite not being used
 import sly_imgaugs
@@ -21,6 +25,7 @@ _open_lnk_name = "open_app.lnk"
 
 
 def init(data, state):
+    '''
     init_progress("Epoch", data)
     init_progress("Iter", data)
     init_progress("UploadDir", data)
@@ -28,7 +33,7 @@ def init(data, state):
     state["isValidation"] = False
 
     init_charts(data, state)
-
+    '''
     state["collapsed7"] = True
     state["disabled7"] = True
     state["done7"] = False
@@ -37,10 +42,6 @@ def init(data, state):
     state["preparingData"] = False
     data["outputName"] = None
     data["outputUrl"] = None
-
-
-def restart(data, state):
-    data["done9"] = False
 
 
 def init_chart(title, names, xs, ys, smoothing=None, yrange=None, decimals=None, xdecimals=None, metric=None):
@@ -124,7 +125,7 @@ def upload_artifacts_and_log_progress():
     progress = sly.Progress("Upload directory with training artifacts to Team Files", 0, is_size=True)
     progress_cb = partial(upload_monitor, api=g.api, task_id=g.task_id, progress=progress)
 
-    remote_dir = f"/mmsegmentation/{g.task_id}_{g.project_info.name}"
+    remote_dir = f"/mmdetection/{g.task_id}_{g.project_info.name}"
     res_dir = g.api.file.upload_directory(g.team_id, g.artifacts_dir, remote_dir, progress_size_cb=progress_cb)
     return res_dir
 
@@ -197,10 +198,10 @@ def prepare_segmentation_data(state, img_dir, ann_dir):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def train(api: sly.Api, task_id, context, state, app_logger):
-    init_class_charts_series(state)
+    # init_class_charts_series(state)
     try:
         sly.json.dump_json_file(state, os.path.join(g.info_dir, "ui_state.json"))
-
+        '''
         img_dir = "img"
         ann_dir = "seg"
         classes, palette = prepare_segmentation_data(state, img_dir, ann_dir)
@@ -209,20 +210,106 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 
         os.makedirs(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1]), exist_ok=True)
         cfg.dump(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1], "config.py"))
+        '''
+        g.project_det_dir = g.project_dir
+        project_det = sly.Project(g.project_det_dir, sly.OpenMode.READ)
+        g.project_det_meta = g.project_meta
+        classes_json = project_det.meta.obj_classes.to_json()
+        classes = [obj["title"] for obj in classes_json if obj["title"]]
+        
+        cfg_path = os.path.join(g.root_source_dir, 'configs', 'faster_rcnn', 'faster_rcnn_r50_caffe_fpn_mstrain_1x_coco.py')
+        cfg = Config.fromfile(cfg_path)
+        
+        # Modify dataset type and path
+        cfg.dataset_type = 'SuperviselyDataset'
+        cfg.data_root = g.project_det_dir
+
+        cfg.data.train.type = 'SuperviselyDataset'
+        cfg.data.train.data_root = cfg.data_root
+        cfg.data.train.ann_file = splits.train_set_path
+        cfg.data.train.img_prefix = None
+        cfg.data.train.seg_prefix = None
+        cfg.data.train.proposal_file = None
+        cfg.data.train.test_mode = False
+        cfg.data.train.classes = classes
+
+        cfg.data.val.type = 'SuperviselyDataset'
+        cfg.data.val.data_root = cfg.data_root
+        cfg.data.val.ann_file = splits.val_set_path
+        cfg.data.val.img_prefix = None
+        cfg.data.val.seg_prefix = None
+        cfg.data.val.proposal_file = None
+        cfg.data.val.test_mode = False
+        cfg.data.val.classes = classes
+
+        cfg.data.test.type = 'SuperviselyDataset'
+        cfg.data.test.data_root = cfg.data_root
+        cfg.data.test.ann_file = None
+        cfg.data.test.img_prefix = None
+        cfg.data.test.seg_prefix = None
+        cfg.data.test.proposal_file = None
+        cfg.data.test.test_mode = True
+        cfg.data.test.classes = classes
+
+
+        # modify num classes of the model in box head
+        cfg.model.roi_head.bbox_head.num_classes = 2
+        # We can still use the pre-trained Mask RCNN model though we do not need to
+        # use the mask branch
+        cfg.load_from = os.path.join(g.root_source_dir, 'checkpoints', 'mask_rcnn_r50_caffe_fpn_mstrain-poly_3x_coco_bbox_mAP-0.408__segm_mAP-0.37_20200504_163245-42aa3d00.pth')
+
+        # Set up working dir to save files and logs.
+        cfg.work_dir = g.my_app.data_dir
+
+        # The original learning rate (LR) is set for 8-GPU training.
+        # We divide it by 8 since we only use one GPU.
+        cfg.optimizer.lr = 0.02 / 8
+        cfg.lr_config.warmup = None
+        cfg.log_config.interval = 10
+
+        # Change the evaluation metric since we use customized dataset.
+        cfg.evaluation.metric = 'mAP'
+        # We can set the evaluation interval to reduce the evaluation times
+        cfg.evaluation.interval = 12
+        # We can set the checkpoint saving interval to reduce the storage cost
+        cfg.checkpoint_config.interval = 12
+
+        # Set seed thus the results are more reproducible
+        cfg.seed = 0
+        set_random_seed(0, deterministic=False)
+        cfg.gpu_ids = range(1)
+
+
+        # We can initialize the logger for training and have a look
+        # at the final config used for training
+        # print(f'Config:\n{cfg.pretty_text}')
+
+
 
         # Build the dataset
         datasets = [build_dataset(cfg.data.train)]
 
         # Build the detector
-        model = build_segmentor(
+        model = build_detector(
             cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
         # Add an attribute for visualization convenience
         model.CLASSES = datasets[0].CLASSES
         model = revert_sync_batchnorm(model)
         # Create work_dir
         os.makedirs(os.path.abspath(cfg.work_dir), exist_ok=True)
-        train_segmentor(model, datasets, cfg, distributed=False, validate=True, meta=dict())
+        train_detector(model, datasets, cfg, distributed=False, validate=True)
 
+        with open(splits.val_set_path, 'r') as set_file:
+            sample = json.load(set_file)[0]
+        inference_image_path = os.path.join(g.project_det_dir, sample["dataset_name"], "img", sample["item_name"])
+        img = mmcv.imread(inference_image_path)
+
+        model.cfg = cfg
+        result = inference_detector(model, img)
+        sly.logger.info(result.keys())
+        # show_result_pyplot(model, img, result)
+
+        '''
         # hide progress bars and eta
         fields = [
             {"field": "data.progressEpoch", "payload": None},
@@ -242,6 +329,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
+        '''
     except Exception as e:
         g.api.app.set_field(task_id, "state.started", False)
         raise e  # app will handle this error and show modal window

@@ -128,6 +128,15 @@
         </el-tab-pane>
     </el-tabs>
 
+    <sly-field title="INFO: Missed labels"
+        description="Images without any labels will be skipped automatically."
+        style="padding-top: 0; padding-bottom: 0; margin: 10px 5px;">
+
+        <sly-icon slot="icon" :options="{ color: '#13ce66', bgColor: '#e1f7eb', rounded: false }">
+            <i class="zmdi zmdi-info"></i>
+        </sly-icon>
+    </sly-field>
+
     <el-button
             type="primary"
             class="mt10 regular"
@@ -141,8 +150,8 @@
         <div>
             <i class="zmdi zmdi-check-circle mr5" style="color: #13ce66"></i>
             <span style="color: #5a6772;">
-                Splits have been successfully created: {{state.trainImagesCount}} images in train,
-                {{state.valImagesCount}} images in val
+                Splits have been successfully created: {{state.trainImagesCount}}/{{state.fullTrainImagesCount}} images in train ({{state.fullTrainImagesCount - state.trainImagesCount}} skipped because of no labels),
+                {{state.valImagesCount}}/{{state.fullValImagesCount}} images in val ({{state.fullValImagesCount - state.valImagesCount}} skipped because of no labels)
             </span>
         </div>
         <el-button type="warning" class="regular mt10" :plain="true"

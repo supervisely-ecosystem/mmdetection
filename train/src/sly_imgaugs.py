@@ -1,5 +1,5 @@
 import supervisely as sly
-from mmseg.datasets.builder import PIPELINES
+from mmdet.datasets.builder import PIPELINES
 
 
 @PIPELINES.register_module()
