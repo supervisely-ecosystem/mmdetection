@@ -38,6 +38,9 @@ sly.fs.clean_dir(my_app.data_dir)
 project_dir = os.path.join(my_app.data_dir, "sly_project")
 project_det_dir = os.path.join(my_app.data_dir, "sly_det_project")
 project_meta = sly.ProjectMeta.from_json(api.project.get_meta(project_id))
+
+project_fs: sly.Project = None
+project_det: sly.Project = None
 project_det_meta = None
 
 artifacts_dir = os.path.join(my_app.data_dir, "artifacts")

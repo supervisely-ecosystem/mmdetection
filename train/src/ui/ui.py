@@ -5,7 +5,7 @@ import splits as train_val_split
 #import augs
 #import architectures as model_architectures
 #import hyperparameters
-#import classes
+import classes
 import monitoring
 
 
@@ -15,7 +15,7 @@ def init(data, state):
     state["restartFrom"] = None
     input_project.init(data, state)
     train_val_split.init(g.project_info, g.project_meta, data, state)
-    #classes.init(g.api, data, state, g.project_id, g.project_meta)
+    classes.init(g.api, data, state, g.project_id, g.project_meta)
     #augs.init(data, state)
     #model_architectures.init(data, state)
     #hyperparameters.init(data, state)
@@ -30,13 +30,14 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
     data = {}
     state = {}
     if restart_from_step <= 2:
-        train_val_split.init(g.project_info, g.project_meta, data, state)
-    '''
-    if restart_from_step <= 3:
         if restart_from_step == 3:
             classes.restart(data, state)
         else:
             classes.init(g.api, data, state, g.project_id, g.project_meta)
+    
+    if restart_from_step <= 3:
+        train_val_split.init(g.project_info, g.project_meta, data, state)
+    '''
     if restart_from_step <= 4:
         if restart_from_step == 4:
             augs.restart(data, state)
