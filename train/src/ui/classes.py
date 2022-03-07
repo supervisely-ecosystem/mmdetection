@@ -42,9 +42,9 @@ def init(api: sly.Api, data, state, project_id, project_meta: sly.ProjectMeta):
     state["totalItems"] = g.project_info.items_count
 
     state["findingItemsToIgnore"] = False
-    data["done2"] = False
-    state["collapsed2"] = True
-    state["disabled2"] = True
+    data["doneClasses"] = False
+    state["collapsedClasses"] = True
+    state["disabledClasses"] = True
 
 
 def get_items_to_ignore(selected_classes):
@@ -63,6 +63,9 @@ def get_items_to_ignore(selected_classes):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def use_classes(api: sly.Api, task_id, context, state, app_logger):
+    global selected_classes
+    selected_classes = state["selectedClasses"]
+
     sly.logger.info(f"Project data: {g.project_fs.total_items} images")
     g.api.app.set_field(g.task_id, "state.findingItemsToIgnore", True)
     
@@ -78,13 +81,13 @@ def use_classes(api: sly.Api, task_id, context, state, app_logger):
         {"field": "state.selectedClasses", "payload": state["selectedClasses"]},
         {"field": "state.ignoredItems", "payload": ignored_items_count},
         {"field": "state.findingItemsToIgnore", "payload": False},
-        {"field": "data.done2", "payload": True},
-        {"field": "state.collapsed3", "payload": False},
-        {"field": "state.disabled3", "payload": False},
-        {"field": "state.activeStep", "payload": 3},
+        {"field": "data.doneClasses", "payload": True},
+        {"field": "state.collapsedSplits", "payload": False},
+        {"field": "state.disabledSplits", "payload": False},
+        {"field": "state.activeStep", "payload": 4},
     ]
     g.api.app.set_fields(g.task_id, fields)
 
 
 def restart(data, state):
-    data["done2"] = False
+    data["doneClasses"] = False

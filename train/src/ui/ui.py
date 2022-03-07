@@ -1,12 +1,13 @@
 import supervisely as sly
 import sly_globals as g
 import input_project as input_project
-import splits as train_val_split
+import splits
 #import augs
 #import architectures as model_architectures
 #import hyperparameters
 import classes
 import monitoring
+import task
 
 
 @sly.timeit
@@ -14,7 +15,8 @@ def init(data, state):
     state["activeStep"] = 1
     state["restartFrom"] = None
     input_project.init(data, state)
-    train_val_split.init(g.project_info, g.project_meta, data, state)
+    task.init(data, state)
+    splits.init(g.project_info, g.project_meta, data, state)
     classes.init(g.api, data, state, g.project_id, g.project_meta)
     #augs.init(data, state)
     #model_architectures.init(data, state)
@@ -29,14 +31,18 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
     restart_from_step = state["restartFrom"]
     data = {}
     state = {}
+
     if restart_from_step <= 2:
+        task.init(data, state)
+
+    if restart_from_step <= 3:
         if restart_from_step == 3:
             classes.restart(data, state)
         else:
             classes.init(g.api, data, state, g.project_id, g.project_meta)
     
-    if restart_from_step <= 3:
-        train_val_split.init(g.project_info, g.project_meta, data, state)
+    if restart_from_step <= 4:
+        splits.init(g.project_info, g.project_meta, data, state)
     '''
     if restart_from_step <= 4:
         if restart_from_step == 4:

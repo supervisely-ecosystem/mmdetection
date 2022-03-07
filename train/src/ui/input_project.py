@@ -18,8 +18,8 @@ def init(data, state):
     data["projectImagesCount"] = g.project_info.items_count
     data["projectPreviewUrl"] = g.api.image.preview_url(g.project_info.reference_image_url, 100, 100)
     init_progress(progress_index, data)
-    data["done1"] = False
-    state["collapsed1"] = False
+    data["doneProject"] = False
+    state["collapsedProject"] = False
 
 
 @g.my_app.callback("download_project")
@@ -43,9 +43,9 @@ def download(api: sly.Api, task_id, context, state, app_logger):
         raise e
 
     fields = [
-        {"field": "data.done1", "payload": True},
-        {"field": "state.collapsed2", "payload": False},
-        {"field": "state.disabled2", "payload": False},
+        {"field": "data.doneProject", "payload": True},
+        {"field": "state.collapsedTask", "payload": False},
+        {"field": "state.disabledTask", "payload": False},
         {"field": "state.activeStep", "payload": 2},
     ]
     g.api.app.set_fields(g.task_id, fields)

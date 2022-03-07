@@ -61,9 +61,9 @@ def init(project_info, project_meta: sly.ProjectMeta, data, state):
     state["splitInProgress"] = False
     state["trainImagesCount"] = None
     state["valImagesCount"] = None
-    data["done3"] = False
-    state["collapsed3"] = True
-    state["disabled3"] = True
+    data["doneSplits"] = False
+    state["collapsedSplits"] = True
+    state["disabledSplits"] = True
 
 
 def refresh_table():
@@ -247,7 +247,7 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
     finally:
         fields = [
             {"field": "state.splitInProgress", "payload": False},
-            {"field": "data.done3", "payload": step_done},
+            {"field": "data.doneSplits", "payload": step_done},
             {"field": "state.trainImagesCount", "payload": None if train_set is None else len(train_set)},
             {"field": "state.valImagesCount", "payload": None if val_set is None else len(val_set)},
             {"field": "state.ignoredUntaggedImages", "payload": ignored_untagged_cnt},
@@ -255,9 +255,9 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
         ]
         if step_done is True:
             fields.extend([
-                {"field": "state.collapsed7", "payload": False},
-                {"field": "state.disabled7", "payload": False},
-                {"field": "state.activeStep", "payload": 7},
+                {"field": "state.collapsedMonitoring", "payload": False},
+                {"field": "state.disabledMonitoring", "payload": False},
+                {"field": "state.activeStep", "payload": 8},
             ])
         g.api.app.set_fields(g.task_id, fields)
     if train_set is not None:

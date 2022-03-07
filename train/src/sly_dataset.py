@@ -1,6 +1,10 @@
 from mmdet.datasets.custom import CustomDataset
 from mmdet.datasets.builder import DATASETS
 from mmdet.datasets.pipelines import Compose
+from mmdet.core.evaluation import eval_recalls
+from sly_metrics import eval_map
+from collections import OrderedDict
+from mmcv.utils import print_log
 import supervisely as sly
 import sly_globals as g
 import numpy as np
@@ -21,8 +25,8 @@ class SuperviselyDataset(CustomDataset):
                 img_prefix=None,
                 seg_prefix=None,
                 proposal_file=None,
-                test_mode=False):
-    
+                test_mode=False,
+                task="detection"):
         self.data_root = data_root
         self.test_mode = test_mode
         self.CLASSES = self.get_classes(classes)
@@ -30,8 +34,10 @@ class SuperviselyDataset(CustomDataset):
         self.data_infos = self.load_annotations()
         self.img_prefix = None
         self.seg_prefix = None
-        self.proposal_file = False
+        self.proposal_file = None
         self.proposals = None
+        self.task = task
+        assert task in ["detection", "instance_segmentation"]
 
         if not test_mode:
             # set group flag for the sampler
@@ -42,7 +48,7 @@ class SuperviselyDataset(CustomDataset):
     
 
     def __len__(self):
-        return sum([len(items) for dataset, items in self.dataset_samples.items()])
+        return sum([len(items) for dataset_name, items in self.dataset_samples.items()])
 
 
     def load_annotations(self):
@@ -53,6 +59,8 @@ class SuperviselyDataset(CustomDataset):
             for item_name in samples:
                 filename = os.path.join(self.data_root, ds_name, "img", item_name)
                 ann_path = os.path.join(self.data_root, ds_name, "ann", f'{item_name}.json')
+                # if self.task == "instance_segmentation":
+                #     seg_path = 
 
                 ann = sly.Annotation.load_json_file(ann_path, g.project_det_meta)
                 data_info = dict(filename=filename, width=ann.img_size[1], height=ann.img_size[0])
@@ -89,4 +97,51 @@ class SuperviselyDataset(CustomDataset):
                 files_by_datasets[row['dataset_name']] = existing_items
 
         return files_by_datasets
+
+    def evaluate(self,
+                 results,
+                 metric='mAP',
+                 logger=None,
+                 proposal_nums=(100, 300, 1000),
+                 iou_thr=0.5,
+                 scale_ranges=None):
+
+        if not isinstance(metric, str):
+            assert len(metric) == 1
+            metric = metric[0]
+        allowed_metrics = ['mAP', 'recall']
+        if metric not in allowed_metrics:
+            raise KeyError(f'metric {metric} is not supported')
+
+        annotations = [self.get_ann_info(i) for i in range(len(self))]
+        eval_results = OrderedDict()
+        iou_thrs = [iou_thr] if isinstance(iou_thr, float) else iou_thr
+        if metric == 'mAP':
+            assert isinstance(iou_thrs, list)
+            mean_aps = []
+            for iou_thr in iou_thrs:
+                print_log(f'\n{"-" * 15}iou_thr: {iou_thr}{"-" * 15}')
+                mean_ap, _ = eval_map(
+                    results,
+                    annotations,
+                    scale_ranges=scale_ranges,
+                    iou_thr=iou_thr,
+                    dataset=self.CLASSES,
+                    nproc=4,
+                    logger=logger)
+                mean_aps.append(mean_ap)
+                eval_results[f'AP{int(iou_thr * 100):02d}'] = round(mean_ap, 3)
+            eval_results['mAP'] = sum(mean_aps) / len(mean_aps)
+        elif metric == 'recall':
+            gt_bboxes = [ann['bboxes'] for ann in annotations]
+            recalls = eval_recalls(
+                gt_bboxes, results, proposal_nums, iou_thr, logger=logger)
+            for i, num in enumerate(proposal_nums):
+                for j, iou in enumerate(iou_thrs):
+                    eval_results[f'recall@{num}@{iou}'] = recalls[i, j]
+            if recalls.shape[1] > 1:
+                ar = recalls.mean(axis=1)
+                for i, num in enumerate(proposal_nums):
+                    eval_results[f'AR@{num}'] = ar[i]
+        return eval_results
         

@@ -8,13 +8,14 @@ import numpy as np
 from functools import partial
 import mmcv
 from mmcv.cnn.utils import revert_sync_batchnorm
-from mmdet.apis import train_detector, set_random_seed, inference_detector
+from mmdet.apis import train_detector, set_random_seed, inference_detector, show_result_pyplot
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 # from init_cfg import init_cfg
 from mmcv import Config
 import splits
 import json
+import matplotlib.pyplot as plt
 
 # ! required to be left here despite not being used
 import sly_imgaugs
@@ -34,9 +35,9 @@ def init(data, state):
 
     init_charts(data, state)
     '''
-    state["collapsed7"] = True
-    state["disabled7"] = True
-    state["done7"] = False
+    state["collapsedMonitoring"] = True
+    state["disabledMonitoring"] = True
+    state["doneMonitoring"] = False
 
     state["started"] = False
     state["preparingData"] = False
@@ -223,6 +224,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         # Modify dataset type and path
         cfg.dataset_type = 'SuperviselyDataset'
         cfg.data_root = g.project_det_dir
+        cfg.data.samples_per_gpu = 2
 
         cfg.data.train.type = 'SuperviselyDataset'
         cfg.data.train.data_root = cfg.data_root
@@ -232,6 +234,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         cfg.data.train.proposal_file = None
         cfg.data.train.test_mode = False
         cfg.data.train.classes = classes
+        cfg.data.train.task = state["task"]
 
         cfg.data.val.type = 'SuperviselyDataset'
         cfg.data.val.data_root = cfg.data_root
@@ -241,6 +244,8 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         cfg.data.val.proposal_file = None
         cfg.data.val.test_mode = False
         cfg.data.val.classes = classes
+        cfg.data.val.task = state["task"]
+        cfg.data.val.samples_per_gpu = 2
 
         cfg.data.test.type = 'SuperviselyDataset'
         cfg.data.test.data_root = cfg.data_root
@@ -250,7 +255,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         cfg.data.test.proposal_file = None
         cfg.data.test.test_mode = True
         cfg.data.test.classes = classes
-
+        cfg.data.test.task = state["task"]
 
         # modify num classes of the model in box head
         cfg.model.roi_head.bbox_head.num_classes = 2
@@ -265,7 +270,10 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         # We divide it by 8 since we only use one GPU.
         cfg.optimizer.lr = 0.02 / 8
         cfg.lr_config.warmup = None
-        cfg.log_config.interval = 10
+        cfg.log_config.interval = 1
+        cfg.log_config.hooks = [
+        dict(type='SuperviselyLoggerHook', by_epoch=False)
+    ]
 
         # Change the evaluation metric since we use customized dataset.
         cfg.evaluation.metric = 'mAP'
@@ -279,12 +287,9 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         set_random_seed(0, deterministic=False)
         cfg.gpu_ids = range(1)
 
-
         # We can initialize the logger for training and have a look
         # at the final config used for training
-        # print(f'Config:\n{cfg.pretty_text}')
-
-
+        print(f'Config:\n{cfg.pretty_text}')
 
         # Build the dataset
         datasets = [build_dataset(cfg.data.train)]
@@ -306,8 +311,9 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 
         model.cfg = cfg
         result = inference_detector(model, img)
-        sly.logger.info(result.keys())
-        # show_result_pyplot(model, img, result)
+
+        img = show_result_pyplot(model, img, result)
+        cv2.imwrite("/tmp/mmdetection/tmp.png", img)
 
         '''
         # hide progress bars and eta
@@ -325,13 +331,14 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         fields = [
             {"field": "data.outputUrl", "payload": g.api.file.get_url(file_info.id)},
             {"field": "data.outputName", "payload": remote_dir},
-            {"field": "state.done7", "payload": True},
+            {"field": "state.doneMonitoring", "payload": True},
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
         '''
     except Exception as e:
         g.api.app.set_field(task_id, "state.started", False)
+        sly.logger.info(e)
         raise e  # app will handle this error and show modal window
 
     # stop application
