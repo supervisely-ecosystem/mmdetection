@@ -255,9 +255,9 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
         ]
         if step_done is True:
             fields.extend([
-                {"field": "state.collapsedMonitoring", "payload": False},
-                {"field": "state.disabledMonitoring", "payload": False},
-                {"field": "state.activeStep", "payload": 8},
+                {"field": "state.collapsedAugs", "payload": False},
+                {"field": "state.disabledAugs", "payload": False},
+                {"field": "state.activeStep", "payload": 5},
             ])
         g.api.app.set_fields(g.task_id, fields)
     if train_set is not None:

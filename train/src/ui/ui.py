@@ -2,8 +2,8 @@ import supervisely as sly
 import sly_globals as g
 import input_project as input_project
 import splits
-#import augs
-#import architectures as model_architectures
+import augs
+import architectures
 #import hyperparameters
 import classes
 import monitoring
@@ -16,10 +16,10 @@ def init(data, state):
     state["restartFrom"] = None
     input_project.init(data, state)
     task.init(data, state)
-    splits.init(g.project_info, g.project_meta, data, state)
     classes.init(g.api, data, state, g.project_id, g.project_meta)
-    #augs.init(data, state)
-    #model_architectures.init(data, state)
+    splits.init(g.project_info, g.project_meta, data, state)
+    augs.init(data, state)
+    architectures.init(data, state)
     #hyperparameters.init(data, state)
     monitoring.init(data, state)
 
@@ -43,17 +43,19 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
     
     if restart_from_step <= 4:
         splits.init(g.project_info, g.project_meta, data, state)
-    '''
-    if restart_from_step <= 4:
-        if restart_from_step == 4:
+    
+    if restart_from_step <= 5:
+        if restart_from_step == 5:
             augs.restart(data, state)
         else:
             augs.init(data, state)
-    if restart_from_step <= 5:
-        if restart_from_step == 5:
-            model_architectures.restart(data, state)
+    
+    if restart_from_step <= 6:
+        if restart_from_step == 6:
+            architectures.restart(data, state)
         else:
-            model_architectures.init(data, state)
+            architectures.init(data, state)
+    '''
     if restart_from_step <= 6:
         if restart_from_step == 6:
             hyperparameters.restart(data, state)

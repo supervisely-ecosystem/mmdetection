@@ -226,7 +226,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         cfg.data_root = g.project_det_dir
         cfg.data.samples_per_gpu = 2
 
-        cfg.data.train.type = 'SuperviselyDataset'
+        cfg.data.train.type = cfg.dataset_type
         cfg.data.train.data_root = cfg.data_root
         cfg.data.train.ann_file = splits.train_set_path
         cfg.data.train.img_prefix = None
@@ -236,7 +236,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         cfg.data.train.classes = classes
         cfg.data.train.task = state["task"]
 
-        cfg.data.val.type = 'SuperviselyDataset'
+        cfg.data.val.type = cfg.dataset_type
         cfg.data.val.data_root = cfg.data_root
         cfg.data.val.ann_file = splits.val_set_path
         cfg.data.val.img_prefix = None
@@ -247,7 +247,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         cfg.data.val.task = state["task"]
         cfg.data.val.samples_per_gpu = 2
 
-        cfg.data.test.type = 'SuperviselyDataset'
+        cfg.data.test.type = cfg.dataset_type
         cfg.data.test.data_root = cfg.data_root
         cfg.data.test.ann_file = None
         cfg.data.test.img_prefix = None

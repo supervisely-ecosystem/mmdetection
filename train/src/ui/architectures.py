@@ -48,8 +48,11 @@ def init_default_cfg_params(state):
     state["workersPerGPU"] = 2
 
 def init(data, state):
-    state['pretrainedModel'] = 'SegFormer'
-    data["pretrainedModels"], metrics = get_pretrained_models(return_metrics=True)
+    if state["task"] == "detection":
+        state['pretrainedModel'] = 'TOOD'
+    elif state["task"] == "instance_segmentation":
+        state['pretrainedModel'] = 'QueryInst'
+    data["pretrainedModels"], metrics = get_pretrained_models(state["task"], return_metrics=True)
     model_select_info = []
     for model_name, params in data["pretrainedModels"].items():
         model_select_info.append({
@@ -66,10 +69,10 @@ def init(data, state):
                               for pretrained_model in data["pretrainedModels"].keys()}
     state["useAuxiliaryHead"] = True
     state["weightsInitialization"] = "pretrained"  # "custom"
-    state["collapsed5"] = True
-    state["disabled5"] = True
+    state["collapsedModels"] = True
+    state["disabledModels"] = True
     state["weightsPath"] = ""
-    data["done5"] = False
+    data["doneModels"] = False
     state["loadingModel"] = False
 
     # default hyperparams that may be reassigned from model default params
@@ -77,56 +80,47 @@ def init(data, state):
 
     sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
                                 min_report_percent=5).init_data(data)
-    '''
-    data["github_icon"] = {
-        "imageUrl": "https://github.githubassets.com/favicons/favicon.png",
-        "rounded": False,
-        "bgColor": "rgba(0,0,0,0)"
-    }
-    data["arxiv_icon"] = {
-        "imageUrl": "https://static.arxiv.org/static/browse/0.3.2.8/images/icons/favicon.ico",
-        "rounded": False,
-        "bgColor": "rgba(0,0,0,0)"
-    }
-    '''
 
-def get_pretrained_models(return_metrics=False):
-    model_yamls = sly.json.load_json_file(os.path.join(g.root_source_dir, "models", "model_meta.json"))
+
+def get_pretrained_models(task="detection", return_metrics=False):
+    model_yamls = sly.json.load_json_file(os.path.join(g.root_source_dir, "models", f"{task}_meta.json"))
     model_config = {}
     all_metrics = []
     for model_meta in model_yamls:
         with open(os.path.join(g.configs_dir, model_meta["yml_file"]), "r") as stream:
             model_info = yaml.safe_load(stream)
             model_config[model_meta["model_name"]] = {}
-            # model_config[model_meta["model_name"]]["code_url"] = model_info["Collections"][0]["Code"]["URL"]
-            # model_config[model_meta["model_name"]]["paper_title"] = model_info["Collections"][0]["Paper"]["Title"]
-            # model_config[model_meta["model_name"]]["paper_url"] = model_info["Collections"][0]["Paper"]["URL"]
             model_config[model_meta["model_name"]]["checkpoints"] = []
             model_config[model_meta["model_name"]]["paper_from"] = model_meta["paper_from"]
             model_config[model_meta["model_name"]]["year"] = model_meta["year"]
-            mmseg_ver = pkg_resources.get_distribution("mmsegmentation").version
-            model_config[model_meta["model_name"]]["config_url"] = f"https://github.com/open-mmlab/mmsegmentation/tree/v{mmseg_ver}/configs/" + model_meta["yml_file"].split("/")[0]
+            mmdet_ver = pkg_resources.get_distribution("mmdet").version
+            model_config[model_meta["model_name"]]["config_url"] = f"https://github.com/open-mmlab/mmdetection/tree/v{mmdet_ver}/configs/" + model_meta["yml_file"].split("/")[0]
             checkpoint_keys = []
             for model in model_info["Models"]:
                 checkpoint_info = {}
                 checkpoint_info["name"] = model["Name"]
-                checkpoint_info["backbone"] = model["Metadata"]["backbone"]
                 try:
                     checkpoint_info["inference_time"] = model["Metadata"]["inference time (ms/im)"][0]["value"]
                 except KeyError:
                     checkpoint_info["inference_time"] = "-"
-                checkpoint_info["crop_size"] = model["Metadata"]["crop size"]
-                checkpoint_info["lr_schd"] = model["Metadata"]["lr schd"]
+                try:
+                    checkpoint_info["resolution"] = model["Metadata"]["inference time (ms/im)"][0]["resolution"]
+                except KeyError:
+                    checkpoint_info["resolution"] = "-"
+                checkpoint_info["epochs"] = model["Metadata"]["Epochs"]
                 try:
                     checkpoint_info["training_memory"] = model["Metadata"]["Training Memory (GB)"]
                 except KeyError:
                     checkpoint_info["training_memory"] = "-"
                 checkpoint_info["config_file"] = model["Config"]
-                checkpoint_info["dataset"] = model["Results"][0]["Dataset"]
-                for metric_name, metric_val in model["Results"][0]["Metrics"].items():
-                    if metric_name not in all_metrics:
-                        all_metrics.append(metric_name)
-                    checkpoint_info[metric_name] = metric_val
+                for result in model["Results"]:
+                    if (task == "detection" and result["Task"] == "Object Detection") or \
+                       (task == "instance_segmentation" and result["Task"] == "Instance Segmentation"):
+                        checkpoint_info["dataset"] = result["Dataset"]
+                        for metric_name, metric_val in result["Metrics"].items():
+                            if metric_name not in all_metrics:
+                                all_metrics.append(metric_name)
+                            checkpoint_info[metric_name] = metric_val
                 checkpoint_info["weights"] = model["Weights"]
                 for key in checkpoint_info.keys():
                     checkpoint_keys.append(key)
@@ -140,11 +134,10 @@ def get_pretrained_models(return_metrics=False):
 def get_table_columns(metrics):
     columns = [
         {"key": "name", "title": " ", "subtitle": None},
-        {"key": "backbone", "title": "Backbone", "subtitle": None},
         {"key": "dataset", "title": "Dataset", "subtitle": None},
         {"key": "inference_time", "title": "Inference time", "subtitle": "(ms/im)"},
-        {"key": "crop_size", "title": "Input size", "subtitle": "(H, W)"},
-        {"key": "lr_schd", "title": "LR scheduler", "subtitle": "steps"},
+        {"key": "resolution", "title": "Input size", "subtitle": "(H, W)"},
+        {"key": "epochs", "title": "Epochs", "subtitle": None},
         {"key": "training_memory", "title": "Training memory", "subtitle": "GB"},
     ]
     for metric in metrics:
@@ -322,7 +315,7 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
             download_custom_config(state)
 
         else:
-            checkpoints_by_model = get_pretrained_models()[state["pretrainedModel"]]["checkpoints"]
+            checkpoints_by_model = get_pretrained_models(state["task"])[state["pretrainedModel"]]["checkpoints"]
             selected_model = next(item for item in checkpoints_by_model
                                   if item["name"] == state["selectedModel"][state["pretrainedModel"]])
 
@@ -350,10 +343,10 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
 
     fields = [
         {"field": "state.loadingModel", "payload": False},
-        {"field": "data.done5", "payload": True},
-        {"field": "state.collapsed6", "payload": False},
-        {"field": "state.disabled6", "payload": False},
-        {"field": "state.activeStep", "payload": 6},
+        {"field": "data.doneModels", "payload": True},
+        {"field": "state.collapsedMonitoring", "payload": False},
+        {"field": "state.disabledMonitoring", "payload": False},
+        {"field": "state.activeStep", "payload": 8},
     ]
 
     global cfg
@@ -363,10 +356,10 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     # print(f'Config:\n{cfg.pretty_text}')
     params = init_default_cfg_args(cfg)
     fields.extend(params)
-    if cfg.pretrained_model in ["CGNet", "DPT", "ERFNet", "HRNet", "MobileNetV3", "OCRNet", "PointRend", "SegFormer", "SemanticFPN", "Twins"]:
-        fields.extend([
-            {"field": "state.useAuxiliaryHead", "payload": False}
-        ])
+    # if cfg.pretrained_model in ["CGNet", "DPT", "ERFNet", "HRNet", "MobileNetV3", "OCRNet", "PointRend", "SegFormer", "SemanticFPN", "Twins"]:
+    #     fields.extend([
+    #         {"field": "state.useAuxiliaryHead", "payload": False}
+    #     ])
 
     g.api.app.set_fields(g.task_id, fields)
 

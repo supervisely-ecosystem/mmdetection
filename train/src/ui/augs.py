@@ -97,13 +97,13 @@ def init(data, state):
     data["gallery1"] = gallery1.to_json()
     gallery2 = CompareGallery(g.task_id, g.api, "data.gallery2", g.project_meta)
     data["gallery2"] = gallery2.to_json()
-    state["collapsed4"] = True
-    state["disabled4"] = True
-    data["done4"] = False
+    state["collapsedAugs"] = True
+    state["disabledAugs"] = True
+    data["doneAugs"] = False
 
 
 def restart(data, state):
-    data["done4"] = False
+    data["doneAugs"] = False
 
 
 @g.my_app.callback("load_existing_pipeline")
@@ -174,9 +174,9 @@ def use_augs(api: sly.Api, task_id, context, state, app_logger):
         augs_config_path = None
 
     fields = [
-        {"field": "data.done4", "payload": True},
-        {"field": "state.collapsed5", "payload": False},
-        {"field": "state.disabled5", "payload": False},
-        {"field": "state.activeStep", "payload": 5},
+        {"field": "data.doneAugs", "payload": True},
+        {"field": "state.collapsedModels", "payload": False},
+        {"field": "state.disabledModels", "payload": False},
+        {"field": "state.activeStep", "payload": 6},
     ]
     g.api.app.set_fields(g.task_id, fields)
