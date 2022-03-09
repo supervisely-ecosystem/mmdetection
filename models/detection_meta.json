@@ -180,21 +180,9 @@
     "year": 2016
   },
   {
-    "model_name" : "RPN",
-    "yml_file" : "rpn/metafile.yml",
-    "paper_from": "NeurIPS",
-    "year": 2015
-  },
-  {
     "model_name" : "Faster R-CNN",
     "yml_file" : "faster_rcnn/metafile.yml",
     "paper_from": "NeurIPS",
-    "year": 2015
-  },
-  {
-    "model_name" : "Fast R-CNN",
-    "yml_file" : "fast_rcnn/metafile.yml",
-    "paper_from": "ICCV",
     "year": 2015
   }
 ]

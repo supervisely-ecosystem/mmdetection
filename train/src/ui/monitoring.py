@@ -261,8 +261,10 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 
         # modify num classes of the model in box head
         if hasattr(cfg.model, "roi_head"):
-            cfg.model.roi_head.bbox_head.num_classes = 2
-        
+            if hasattr(cfg.model.roi_head, "bbox_head") and not isinstance(cfg.model.roi_head.bbox_head, list):
+                cfg.model.roi_head.bbox_head.num_classes = 2
+            else:
+                raise ValueError("No bbox head in roi head")
         elif hasattr(cfg.model, "bbox_head") and not isinstance(cfg.model.bbox_head, list):
             cfg.model.bbox_head.num_classes = 2
         else:
