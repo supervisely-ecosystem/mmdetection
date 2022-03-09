@@ -1,4 +1,3 @@
-import os
 import supervisely as sly
 import sly_globals as g
 
@@ -25,6 +24,10 @@ def init_optimizer(state):
     state["maxNorm"] = 1
 
 def init_losses(data, state):
+    state["decodeHeadLoss"] = "CrossEntropyLoss"
+    state["auxiliaryHeadLoss"] = "CrossEntropyLoss"
+    state["decodeHeadLossWeight"] = 1.0
+    state["auxiliaryHeadLossWeight"] = 0.4
     data["availableLosses"] = ["CrossEntropyLoss", "DiceLoss", "FocalLoss", "LovaszLoss"]
     state["useClassWeights"] = False
     state["classWeights"] = ""
@@ -73,29 +76,32 @@ def init(data, state):
     init_general(state)
     init_checkpoints(state)
     init_optimizer(state)
-    init_losses(data, state)
+    # init_losses(data, state)
     init_lr_scheduler(data, state)
 
     state["currentTab"] = "general"
     state["collapsedWarmup"] = True
-    state["collapsed6"] = True
-    state["disabled6"] = True
-    state["done6"] = False
+    state["collapsedHyperparams"] = True
+    state["disabledHyperparams"] = True
+    state["doneHyperparams"] = False
 
 
 def restart(data, state):
-    data["done6"] = False
+    state["collapsedHyperparams"] = False
+    state["disabledHyperparams"] = False
+    data["doneHyperparams"] = False
 
 
 @g.my_app.callback("use_hyp")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def use_hyp(api: sly.Api, task_id, context, state, app_logger):
-    g.evalMetrics = state["evalMetrics"]
+    # TODO: change eval metrics
+    g.evalMetrics = ["mAP"]
     fields = [
-        {"field": "data.done6", "payload": True},
-        {"field": "state.collapsed7", "payload": False},
-        {"field": "state.disabled7", "payload": False},
-        {"field": "state.activeStep", "payload": 7},
+        {"field": "data.doneHyperparams", "payload": True},
+        {"field": "state.collapsedMonitoring", "payload": False},
+        {"field": "state.disabledMonitoring", "payload": False},
+        {"field": "state.activeStep", "payload": 8},
     ]
     g.api.app.set_fields(g.task_id, fields)

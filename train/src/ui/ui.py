@@ -4,7 +4,7 @@ import input_project as input_project
 import splits
 import augs
 import architectures
-#import hyperparameters
+import hyperparameters
 import classes
 import monitoring
 import task
@@ -20,7 +20,7 @@ def init(data, state):
     splits.init(g.project_info, g.project_meta, data, state)
     augs.init(data, state)
     architectures.init(data, state)
-    #hyperparameters.init(data, state)
+    hyperparameters.init(data, state)
     monitoring.init(data, state)
 
 
@@ -33,7 +33,10 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
     state = {}
 
     if restart_from_step <= 2:
-        task.init(data, state)
+        if restart_from_step == 2:
+            task.restart(data, state)
+        else:
+            task.init(data, state)
 
     if restart_from_step <= 3:
         if restart_from_step == 3:
@@ -42,7 +45,10 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
             classes.init(g.api, data, state, g.project_id, g.project_meta)
     
     if restart_from_step <= 4:
-        splits.init(g.project_info, g.project_meta, data, state)
+        if restart_from_step == 4:
+            splits.restart(data, state)
+        else:
+            splits.init(g.project_info, g.project_meta, data, state)
     
     if restart_from_step <= 5:
         if restart_from_step == 5:
@@ -55,19 +61,17 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
             architectures.restart(data, state)
         else:
             architectures.init(data, state)
-    '''
-    if restart_from_step <= 6:
-        if restart_from_step == 6:
+    
+    if restart_from_step <= 7:
+        if restart_from_step == 7:
             hyperparameters.restart(data, state)
         else:
             hyperparameters.init(data, state)
-    '''
+
     fields = [
         {"field": "data", "payload": data, "append": True, "recursive": False},
         {"field": "state", "payload": state, "append": True, "recursive": False},
         {"field": "state.restartFrom", "payload": None},
-        {"field": f"state.collapsed{restart_from_step}", "payload": False},
-        {"field": f"state.disabled{restart_from_step}", "payload": False},
         {"field": "state.activeStep", "payload": restart_from_step},
         {"field": "data.scrollIntoView", "payload": f"step{restart_from_step}"},
     ]

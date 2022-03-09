@@ -66,6 +66,12 @@ def init(project_info, project_meta: sly.ProjectMeta, data, state):
     state["disabledSplits"] = True
 
 
+def restart(data, state):
+    state["collapsedSplits"] = False
+    state["disabledSplits"] = False
+    data["doneSplits"] = False
+
+
 def refresh_table():
     global items_to_ignore
     ignored_items_count = sum([len(ds_items) for ds_items in items_to_ignore.values()])

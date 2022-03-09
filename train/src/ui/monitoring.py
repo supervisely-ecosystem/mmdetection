@@ -11,12 +11,9 @@ from mmcv.cnn.utils import revert_sync_batchnorm
 from mmdet.apis import train_detector, set_random_seed, inference_detector, show_result_pyplot
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
-# from init_cfg import init_cfg
-from mmcv import Config
+from init_cfg import init_cfg
 import splits
 import json
-import matplotlib.pyplot as plt
-import architectures
 
 # ! required to be left here despite not being used
 import sly_imgaugs
@@ -219,88 +216,11 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         classes_json = project_det.meta.obj_classes.to_json()
         classes = [obj["title"] for obj in classes_json if obj["title"]]
         
-        # cfg_path = os.path.join(g.root_source_dir, 'configs', 'faster_rcnn', 'faster_rcnn_r50_caffe_fpn_mstrain_1x_coco.py')
-        # cfg = Config.fromfile(cfg_path)
-        cfg = architectures.cfg
-
-        # Modify dataset type and path
-        cfg.dataset_type = 'SuperviselyDataset'
-        cfg.data_root = g.project_det_dir
-        cfg.data.samples_per_gpu = 2
-
-        cfg.data.train.type = cfg.dataset_type
-        cfg.data.train.data_root = cfg.data_root
-        cfg.data.train.ann_file = splits.train_set_path
-        cfg.data.train.img_prefix = None
-        cfg.data.train.seg_prefix = None
-        cfg.data.train.proposal_file = None
-        cfg.data.train.test_mode = False
-        cfg.data.train.classes = classes
-        cfg.data.train.task = state["task"]
-
-        cfg.data.val.type = cfg.dataset_type
-        cfg.data.val.data_root = cfg.data_root
-        cfg.data.val.ann_file = splits.val_set_path
-        cfg.data.val.img_prefix = None
-        cfg.data.val.seg_prefix = None
-        cfg.data.val.proposal_file = None
-        cfg.data.val.test_mode = False
-        cfg.data.val.classes = classes
-        cfg.data.val.task = state["task"]
-        cfg.data.val.samples_per_gpu = 2
-
-        cfg.data.test.type = cfg.dataset_type
-        cfg.data.test.data_root = cfg.data_root
-        cfg.data.test.ann_file = None
-        cfg.data.test.img_prefix = None
-        cfg.data.test.seg_prefix = None
-        cfg.data.test.proposal_file = None
-        cfg.data.test.test_mode = True
-        cfg.data.test.classes = classes
-        cfg.data.test.task = state["task"]
-
-        # modify num classes of the model in box head
-        if hasattr(cfg.model, "roi_head"):
-            if hasattr(cfg.model.roi_head, "bbox_head") and not isinstance(cfg.model.roi_head.bbox_head, list):
-                cfg.model.roi_head.bbox_head.num_classes = 2
-            else:
-                raise ValueError("No bbox head in roi head")
-        elif hasattr(cfg.model, "bbox_head") and not isinstance(cfg.model.bbox_head, list):
-            cfg.model.bbox_head.num_classes = 2
-        else:
-            raise ValueError("No bbox head")
-        # We can still use the pre-trained Mask RCNN model though we do not need to
-        # use the mask branch
-        # cfg.load_from = os.path.join(g.root_source_dir, 'checkpoints', 'mask_rcnn_r50_caffe_fpn_mstrain-poly_3x_coco_bbox_mAP-0.408__segm_mAP-0.37_20200504_163245-42aa3d00.pth')
-        cfg.load_from = g.local_weights_path
-
-        # Set up working dir to save files and logs.
-        cfg.work_dir = g.my_app.data_dir
-
-        # The original learning rate (LR) is set for 8-GPU training.
-        # We divide it by 8 since we only use one GPU.
-        cfg.optimizer.lr = 0.02 / 8
-        cfg.lr_config.warmup = None
-        cfg.log_config.interval = 1
-        cfg.log_config.hooks = [
-        dict(type='SuperviselyLoggerHook', by_epoch=False)
-    ]
-
-        # Change the evaluation metric since we use customized dataset.
-        cfg.evaluation.metric = 'mAP'
-        # We can set the evaluation interval to reduce the evaluation times
-        cfg.evaluation.interval = 12
-        # We can set the checkpoint saving interval to reduce the storage cost
-        cfg.checkpoint_config.interval = 12
-
-        # Set seed thus the results are more reproducible
-        cfg.seed = 0
-        set_random_seed(0, deterministic=False)
-        cfg.gpu_ids = range(1)
+        cfg = init_cfg(state, classes, None)
 
         # We can initialize the logger for training and have a look
         # at the final config used for training
-        print(f'Config:\n{cfg.pretty_text}')
+        # print(f'Config:\n{cfg.pretty_text}')
 
         # Build the dataset
         datasets = [build_dataset(cfg.data.train)]

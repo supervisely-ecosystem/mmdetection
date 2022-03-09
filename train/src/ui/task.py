@@ -7,10 +7,19 @@ def init(data, state):
     state["disabledTask"] = True
     data["doneTask"] = False
 
+
+def restart(data, state):
+    state["collapsedTask"] = False
+    state["disabledTask"] = False
+    data["doneTask"] = False
+
+
 @g.my_app.callback("select_task")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def select_task(api: sly.Api, task_id, context, state, app_logger):
+    # TODO: check if task is "instance_segmentation" but labels are only bboxes
+
     fields = [
         {"field": "state.task", "payload": state["task"]},
         {"field": "state.collapsedClasses", "payload": False},

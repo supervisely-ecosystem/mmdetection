@@ -13,10 +13,6 @@ def init_default_cfg_params(state):
     state["optimizer"] = "SGD"
     state["lr"] = 0.001
     state["weightDecay"] = 0
-    state["decodeHeadLoss"] = "CrossEntropyLoss"
-    state["auxiliaryHeadLoss"] = "CrossEntropyLoss"
-    state["decodeHeadLossWeight"] = 1.0
-    state["auxiliaryHeadLossWeight"] = 0.4
     state["lrPolicy"] = "Cyclic"
     state["useWarmup"] = False
     state["warmup"] = "constant"
@@ -174,28 +170,7 @@ def download_custom_config(state):
 
 
 def init_default_cfg_args(cfg):
-    params = [
-        {
-            "field": "state.decodeHeadLoss",
-            "payload": cfg.model.decode_head[0].loss_decode.type if isinstance(cfg.model.decode_head, list) else cfg.model.decode_head.loss_decode.type
-        },
-        {
-            "field": "state.decodeHeadLossWeight",
-            "payload": cfg.model.decode_head[0].loss_decode.loss_weight if isinstance(cfg.model.decode_head, list) else cfg.model.decode_head.loss_decode.loss_weight
-        },
-    ]
-    if hasattr(cfg.model, "auxiliary_head") and cfg.model.auxiliary_head is not None:
-        params.extend([
-            {
-                "field": "state.auxiliaryHeadLoss",
-                "payload": cfg.model.decode_head[0].loss_decode.type if isinstance(cfg.model.decode_head,
-                                                                                list) else cfg.model.decode_head.loss_decode.type
-            },
-            {
-                "field": "state.auxiliaryHeadLossWeight",
-                "payload": cfg.model.auxiliary_head[0].loss_decode.loss_weight if isinstance(cfg.model.auxiliary_head, list) else cfg.model.auxiliary_head.loss_decode.loss_weight
-            }
-        ])
+    params = []
     if hasattr(cfg.data, "samples_per_gpu"):
         params.extend([{
             "field": "state.batchSizePerGPU",
@@ -206,6 +181,8 @@ def init_default_cfg_args(cfg):
             "field": "state.workersPerGPU",
             "payload": cfg.data.workers_per_gpu
         }])
+    # TODO: img_scale
+    '''
     if hasattr(cfg, "crop_size"):
         params.extend([{
             "field": "state.input_size.value.height",
@@ -220,6 +197,7 @@ def init_default_cfg_args(cfg):
             "field": "state.input_size.options.proportions.width",
             "payload": 100 * (cfg.crop_size[1] / cfg.crop_size[0])
         }])
+    '''
     if hasattr(cfg.optimizer, "type"):
         params.extend([{
             "field": "state.optimizer",
@@ -250,6 +228,7 @@ def init_default_cfg_args(cfg):
         }])
     # take lr scheduler params
     if hasattr(cfg, "lr_config"):
+        # TODO: fix policy
         if hasattr(cfg.lr_config, "policy"):
             policy = cfg.lr_config.policy.capitalize()
             params.extend([{
@@ -347,9 +326,9 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     fields = [
         {"field": "state.loadingModel", "payload": False},
         {"field": "data.doneModels", "payload": True},
-        {"field": "state.collapsedMonitoring", "payload": False},
-        {"field": "state.disabledMonitoring", "payload": False},
-        {"field": "state.activeStep", "payload": 8},
+        {"field": "state.collapsedHyperparams", "payload": False},
+        {"field": "state.disabledHyperparams", "payload": False},
+        {"field": "state.activeStep", "payload": 7},
     ]
 
     global cfg
@@ -357,8 +336,8 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     if state["weightsInitialization"] != "custom":
         cfg.pretrained_model = state["pretrainedModel"]
     print(f'Config:\n{cfg.pretty_text}')
-    # params = init_default_cfg_args(cfg)
-    # fields.extend(params)
+    params = init_default_cfg_args(cfg)
+    fields.extend(params)
     # if cfg.pretrained_model in ["CGNet", "DPT", "ERFNet", "HRNet", "MobileNetV3", "OCRNet", "PointRend", "SegFormer", "SemanticFPN", "Twins"]:
     #     fields.extend([
     #         {"field": "state.useAuxiliaryHead", "payload": False}
@@ -367,4 +346,6 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     g.api.app.set_fields(g.task_id, fields)
 
 def restart(data, state):
-    data["done5"] = False
+    state["collapsedModels"] = False
+    state["disabledModels"] = False
+    data["doneModels"] = False

@@ -90,4 +90,6 @@ def use_classes(api: sly.Api, task_id, context, state, app_logger):
 
 
 def restart(data, state):
+    state["collapsedClasses"] = False
+    state["disabledClasses"] = False
     data["doneClasses"] = False
