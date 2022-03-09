@@ -107,7 +107,10 @@ def get_pretrained_models(task="detection", return_metrics=False):
                     checkpoint_info["resolution"] = model["Metadata"]["inference time (ms/im)"][0]["resolution"]
                 except KeyError:
                     checkpoint_info["resolution"] = "-"
-                checkpoint_info["epochs"] = model["Metadata"]["Epochs"]
+                try:
+                    checkpoint_info["epochs"] = model["Metadata"]["Epochs"]
+                except KeyError:
+                    checkpoint_info["epochs"] = "-"
                 try:
                     checkpoint_info["training_memory"] = model["Metadata"]["Training Memory (GB)"]
                 except KeyError:
@@ -353,9 +356,9 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     cfg = Config.fromfile(g.model_config_local_path)
     if state["weightsInitialization"] != "custom":
         cfg.pretrained_model = state["pretrainedModel"]
-    # print(f'Config:\n{cfg.pretty_text}')
-    params = init_default_cfg_args(cfg)
-    fields.extend(params)
+    print(f'Config:\n{cfg.pretty_text}')
+    # params = init_default_cfg_args(cfg)
+    # fields.extend(params)
     # if cfg.pretrained_model in ["CGNet", "DPT", "ERFNet", "HRNet", "MobileNetV3", "OCRNet", "PointRend", "SegFormer", "SemanticFPN", "Twins"]:
     #     fields.extend([
     #         {"field": "state.useAuxiliaryHead", "payload": False}

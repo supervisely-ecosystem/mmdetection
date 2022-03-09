@@ -16,6 +16,7 @@ from mmcv import Config
 import splits
 import json
 import matplotlib.pyplot as plt
+import architectures
 
 # ! required to be left here despite not being used
 import sly_imgaugs
@@ -218,9 +219,10 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         classes_json = project_det.meta.obj_classes.to_json()
         classes = [obj["title"] for obj in classes_json if obj["title"]]
         
-        cfg_path = os.path.join(g.root_source_dir, 'configs', 'faster_rcnn', 'faster_rcnn_r50_caffe_fpn_mstrain_1x_coco.py')
-        cfg = Config.fromfile(cfg_path)
-        
+        # cfg_path = os.path.join(g.root_source_dir, 'configs', 'faster_rcnn', 'faster_rcnn_r50_caffe_fpn_mstrain_1x_coco.py')
+        # cfg = Config.fromfile(cfg_path)
+        cfg = architectures.cfg
+
         # Modify dataset type and path
         cfg.dataset_type = 'SuperviselyDataset'
         cfg.data_root = g.project_det_dir
@@ -258,10 +260,17 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         cfg.data.test.task = state["task"]
 
         # modify num classes of the model in box head
-        cfg.model.roi_head.bbox_head.num_classes = 2
+        if hasattr(cfg.model, "roi_head"):
+            cfg.model.roi_head.bbox_head.num_classes = 2
+        
+        elif hasattr(cfg.model, "bbox_head") and not isinstance(cfg.model.bbox_head, list):
+            cfg.model.bbox_head.num_classes = 2
+        else:
+            raise ValueError("No bbox head")
         # We can still use the pre-trained Mask RCNN model though we do not need to
         # use the mask branch
-        cfg.load_from = os.path.join(g.root_source_dir, 'checkpoints', 'mask_rcnn_r50_caffe_fpn_mstrain-poly_3x_coco_bbox_mAP-0.408__segm_mAP-0.37_20200504_163245-42aa3d00.pth')
+        # cfg.load_from = os.path.join(g.root_source_dir, 'checkpoints', 'mask_rcnn_r50_caffe_fpn_mstrain-poly_3x_coco_bbox_mAP-0.408__segm_mAP-0.37_20200504_163245-42aa3d00.pth')
+        cfg.load_from = g.local_weights_path
 
         # Set up working dir to save files and logs.
         cfg.work_dir = g.my_app.data_dir
