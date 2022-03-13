@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import supervisely as sly
 import shutil
+import zipfile
 import pkg_resources
 from dotenv import load_dotenv
 
@@ -53,10 +54,18 @@ sly.fs.mkdir(checkpoints_dir)
 # TODO: copy archive, not folder with configs
 configs_dir = os.path.join(root_source_dir, "configs")
 mmdet_ver = pkg_resources.get_distribution("mmdet").version
-if os.path.isdir(f"/tmp/mmdet/mmdetection-{mmdet_ver}"):
+zip_path = f"/tmp/mmdet/v{mmdet_ver}.zip"
+if os.path.exists(zip_path) and os.path.isfile(zip_path):
+    copied_zip_path = os.path.join(my_app.data_dir, f"v{mmdet_ver}.zip")
+    shutil.copyfile(zip_path, copied_zip_path)
+    with zipfile.ZipFile(copied_zip_path, 'r') as zip_ref:
+        zip_ref.extractall(my_app.data_dir)
+    unzipped_dir = os.path.join(my_app.data_dir, f"mmdetection-{mmdet_ver}")
+    if os.path.isdir(unzipped_dir):
+        shutil.move(os.path.join(unzipped_dir, "configs"), configs_dir)
     if os.path.isdir(configs_dir):
-        shutil.rmtree(configs_dir)
-    sly.logger.info(f"Getting model configs of current mmdetection version {mmdet_ver}...")
-    shutil.copytree(f"/tmp/mmdet/mmdetection-{mmdet_ver}/configs", configs_dir)
-    models_cnt = len(os.listdir(configs_dir)) - 1
-    sly.logger.info(f"Found {models_cnt} folders in {configs_dir} directory.")
+        shutil.rmtree(unzipped_dir)
+        os.remove(copied_zip_path)
+sly.logger.info(f"Getting model configs of current mmdetection version {mmdet_ver}...")
+config_folders_cnt = len(os.listdir(configs_dir)) - 1
+sly.logger.info(f"Found {config_folders_cnt} folders in {configs_dir} directory.")

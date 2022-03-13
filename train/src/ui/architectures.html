@@ -26,7 +26,7 @@
                         <span><a :href="data.configLinks[state.pretrainedModel]" target="_blank">Learn more...</a></span>
                     </div>
                     <div>
-                        <div class="mb10">Pretrained model:</div>
+                        <div class="mb10">Pretrained models:</div>
                         <!-- <div style="font-size: 11px;color: #848484;" class="mb10">See more details in <a :href="data.pretrainedModels[state.pretrainedModel]['config_url']" target="_blank">model config files</a>. </div> -->
                         <table class="beautiful-table">
                             <thead>
@@ -47,8 +47,8 @@
                                                     class="radio" v-model="state.selectedModel[state.pretrainedModel]"
                                                     :label="model[column.key]"
                                                     :disabled="data.doneModels">
-                                                <span> </span>
-                                                <!-- <div> {{model[column.key]}} </div> -->
+                                                <!--<span> </span>-->
+                                                <span> {{model[column.key]}} </span>
                                             </el-radio>
                                         </div>
                                         <div v-else>

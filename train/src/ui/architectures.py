@@ -43,7 +43,41 @@ def init_default_cfg_params(state):
     state["batchSizePerGPU"] = 4
     state["workersPerGPU"] = 2
 
+
+def reload_task(task):
+    if task == "detection":
+        pretrainedModel = 'TOOD'
+    elif task == "instance_segmentation":
+        pretrainedModel = 'QueryInst'
+    pretrainedModels, metrics = get_pretrained_models(task, return_metrics=True)
+    model_select_info = []
+    for model_name, params in pretrainedModels.items():
+        model_select_info.append({
+            "name": model_name,
+            "paper_from": params["paper_from"],
+            "year": params["year"]
+        })
+    pretrainedModelsInfo = model_select_info
+    configLinks = {model_name: params["config_url"] for model_name, params in pretrainedModels.items()}
+
+    modelColumns = get_table_columns(metrics)
+
+    selectedModel = {pretrained_model: pretrainedModels[pretrained_model]["checkpoints"][0]['name']
+                              for pretrained_model in pretrainedModels.keys()}
+ 
+    fields = [
+        {'field': 'state.pretrainedModel', 'payload': pretrainedModel},
+        {'field': 'data.pretrainedModels', 'payload': pretrainedModels},
+        {'field': 'data.pretrainedModelsInfo', 'payload': pretrainedModelsInfo},
+        {'field': 'data.configLinks', 'payload': configLinks},
+        {'field': 'data.modelColumns', 'payload': modelColumns},
+        {'field': 'state.selectedModel', 'payload': selectedModel}
+    ]
+    g.api.app.set_fields(g.task_id, fields)
+
+
 def init(data, state):
+    print(state["task"])
     if state["task"] == "detection":
         state['pretrainedModel'] = 'TOOD'
     elif state["task"] == "instance_segmentation":
@@ -120,7 +154,11 @@ def get_pretrained_models(task="detection", return_metrics=False):
                             if metric_name not in all_metrics:
                                 all_metrics.append(metric_name)
                             checkpoint_info[metric_name] = metric_val
-                checkpoint_info["weights"] = model["Weights"]
+                try:
+                    checkpoint_info["weights"] = model["Weights"]
+                except KeyError as e:
+                    sly.logger.info(f'Weights not found. Model: {model_meta["model_name"]}, checkpoint: {checkpoint_info["name"]}')
+                    break
                 for key in checkpoint_info.keys():
                     checkpoint_keys.append(key)
                 model_config[model_meta["model_name"]]["checkpoints"].append(checkpoint_info)
@@ -277,7 +315,7 @@ def init_default_cfg_args(cfg):
 
 @g.my_app.callback("download_weights")
 @sly.timeit
-# @g.my_app.ignore_errors_and_show_dialog_window()
+@g.my_app.ignore_errors_and_show_dialog_window()
 def download_weights(api: sly.Api, task_id, context, state, app_logger):
     progress = sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
                                            min_report_percent=5)

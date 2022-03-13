@@ -1,5 +1,6 @@
 import supervisely as sly
 import sly_globals as g
+import architectures
 
 def init(data, state):
     state["task"] = "detection"
@@ -19,7 +20,8 @@ def restart(data, state):
 @g.my_app.ignore_errors_and_show_dialog_window()
 def select_task(api: sly.Api, task_id, context, state, app_logger):
     # TODO: check if task is "instance_segmentation" but labels are only bboxes
-
+    # TODO: add loading text while update architectures is performing
+    architectures.reload_task(state["task"])
     fields = [
         {"field": "state.task", "payload": state["task"]},
         {"field": "state.collapsedClasses", "payload": False},

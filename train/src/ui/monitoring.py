@@ -17,7 +17,6 @@ import json
 
 # ! required to be left here despite not being used
 import sly_imgaugs
-import sly_dataset
 import sly_logger_hook
 
 _open_lnk_name = "open_app.lnk"
@@ -236,15 +235,15 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         train_detector(model, datasets, cfg, distributed=False, validate=True)
 
         with open(splits.val_set_path, 'r') as set_file:
-            sample = json.load(set_file)[0]
-        inference_image_path = os.path.join(g.project_det_dir, sample["dataset_name"], "img", sample["item_name"])
+            sample = json.load(set_file)["images"][0]["file_name"]
+        inference_image_path = os.path.join(g.project_det_dir, sample)
         img = mmcv.imread(inference_image_path)
 
         model.cfg = cfg
         result = inference_detector(model, img)
 
         img = show_result_pyplot(model, img, result)
-        cv2.imwrite("/tmp/mmdetection/tmp.png", img)
+        cv2.imwrite("/tmp/mmdetection/tmp_seg.png", img)
 
         '''
         # hide progress bars and eta

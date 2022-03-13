@@ -126,12 +126,12 @@ def init_cfg_splits(cfg, classes, palette, task):
         cfg.data.train.type = cfg.dataset_type
         cfg.data.train.data_root = cfg.data_root
         cfg.data.train.ann_file = splits.train_set_path
-        cfg.data.train.img_prefix = None
+        cfg.data.train.img_prefix = ''
         cfg.data.train.seg_prefix = None
         cfg.data.train.proposal_file = None
         cfg.data.train.test_mode = False
         cfg.data.train.classes = classes
-        cfg.data.train.task = task
+        # cfg.data.train.task = task
         if hasattr(cfg.data.train, "times"):
             delattr(cfg.data.train, "times")
         if hasattr(cfg.data.train, "dataset"):
@@ -140,27 +140,27 @@ def init_cfg_splits(cfg, classes, palette, task):
         cfg.data.val.type = cfg.dataset_type
         cfg.data.val.data_root = cfg.data_root
         cfg.data.val.ann_file = splits.val_set_path
-        cfg.data.val.img_prefix = None
+        cfg.data.val.img_prefix = ''
         cfg.data.val.seg_prefix = None
         cfg.data.val.proposal_file = None
         cfg.data.val.test_mode = False
         cfg.data.val.classes = classes
-        cfg.data.val.task = task
+        # cfg.data.val.task = task
         cfg.data.val.samples_per_gpu = 2
 
         cfg.data.test.type = cfg.dataset_type
         cfg.data.test.data_root = cfg.data_root
-        cfg.data.test.ann_file = None
-        cfg.data.test.img_prefix = None
+        cfg.data.test.ann_file = splits.val_set_path
+        cfg.data.test.img_prefix = ''
         cfg.data.test.seg_prefix = None
         cfg.data.test.proposal_file = None
         cfg.data.test.test_mode = True
         cfg.data.test.classes = classes
-        cfg.data.test.task = task
+        # cfg.data.test.task = task
 
 
 def init_cfg_training(cfg, state):
-    cfg.dataset_type = 'SuperviselyDataset'
+    cfg.dataset_type = 'CocoDataset'
     cfg.data_root = g.project_det_dir
 
     cfg.data.samples_per_gpu = state["batchSizePerGPU"]
@@ -192,7 +192,7 @@ def init_cfg_eval(cfg, state):
     cfg.evaluation.interval = state["valInterval"]
     # TODO: assign eval metrics
     # cfg.evaluation.metric = state["evalMetrics"]
-    cfg.evaluation.metric = ["mAP"]
+    cfg.evaluation.metric = ['bbox', 'segm'] # ["mAP"]
     cfg.evaluation.save_best = "auto" if state["saveBest"] else None
     cfg.evaluation.rule = "greater"
     cfg.evaluation.out_dir = g.checkpoints_dir
@@ -295,10 +295,23 @@ def init_cfg(state, classes, palette):
             cfg.model.roi_head.bbox_head.num_classes = len(classes)
         else:
             raise ValueError("No bbox head in roi head")
+            
     elif hasattr(cfg.model, "bbox_head") and not isinstance(cfg.model.bbox_head, list):
         cfg.model.bbox_head.num_classes = len(classes)
     else:
-        raise ValueError("No bbox head")
+        raise ValueError("No bbox head or model has multiple bbox head.")
+
+    # modify num classes of the model in mask head
+    if state["task"] == "instance_segmentation":
+        if hasattr(cfg.model, "roi_head"):
+            if hasattr(cfg.model.roi_head, "mask_head") and not isinstance(cfg.model.roi_head.mask_head, list):
+                cfg.model.roi_head.mask_head.num_classes = len(classes)
+            else:
+                raise ValueError("No mask head in roi head")
+        elif hasattr(cfg.model, "mask_head") and not isinstance(cfg.model.mask_head, list):
+            cfg.model.mask_head.num_classes = len(classes)
+        else:
+            raise ValueError("No mask head or model has multiple mask head.")
     init_cfg_optimizer(cfg, state)
     init_cfg_training(cfg, state)
     # init_cfg_pipelines(cfg)

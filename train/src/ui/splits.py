@@ -1,7 +1,12 @@
+from binascii import rlecode_hqx
 import supervisely as sly
 import sly_globals as g
 import os
+import os.path as osp
 import random
+import numpy as np
+import mmcv
+from itertools import groupby
 from collections import namedtuple
 
 ItemInfo = namedtuple('ItemInfo', ['dataset_name', 'name', 'img_path', 'ann_path'])
@@ -242,7 +247,7 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             train_set, val_set, ignored_untagged_cnt, ignored_double_tagged_cnt = get_train_val_sets(state)
         else:
             train_set, val_set = get_train_val_sets(state)
-
+        # TODO: log info about ignored images
         verify_train_val_sets(train_set, val_set)
         step_done = True
     except Exception as e:
@@ -267,16 +272,82 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             ])
         g.api.app.set_fields(g.task_id, fields)
     if train_set is not None:
-        _save_set_to_json(train_set_path, train_set)
+        sly.logger.info("Converting train annotations to COCO format...")
+        save_set_to_coco_json(train_set_path, train_set, state["selectedClasses"], state["task"])
     if val_set is not None:
-        _save_set_to_json(val_set_path, val_set)
+        sly.logger.info("Converting val annotations to COCO format...")
+        save_set_to_coco_json(val_set_path, val_set, state["selectedClasses"], state["task"])
 
-def _save_set_to_json(save_path, items):
+
+def mask_to_image_size(label, existence_mask, img_size):
+    mask_in_images_coordinates = np.zeros(img_size, dtype=bool)  # size is (h, w)
+
+    row, column = label.geometry.origin.row, label.geometry.origin.col  # move mask to image space
+    mask_in_images_coordinates[row: row + existence_mask.shape[0], column: column + existence_mask.shape[1]] = \
+        existence_mask
+
+    return mask_in_images_coordinates
+
+
+def binary_mask_to_rle(binary_mask):
+    rle = {'counts': [], 'size': list(binary_mask.shape)}
+    counts = rle.get('counts')
+    for i, (value, elements) in enumerate(groupby(binary_mask.ravel(order='F'))):
+        if i == 0 and value == 1:
+            counts.append(0)
+        counts.append(len(list(elements)))
+    return rle
+
+
+def save_set_to_coco_json(save_path, items, selected_classes, task):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    res = []
-    for item in items:
-        res.append({
-            "dataset_name": item.dataset_name,
-            "item_name": item.name
-        })
-    sly.json.dump_json_file(res, save_path)
+
+    cats = [{"id": i, "name": k} for i, k in enumerate(selected_classes)]
+    cat2label = {k: i for i, k in enumerate(selected_classes)}
+    annotations = []
+    images = []
+    obj_count = 0
+    # TODO: add progress to UI
+    for idx, item in enumerate(mmcv.track_iter_progress(items)):
+        filename = osp.join(item.dataset_name, "img", item.name)
+        ann_path = osp.join(g.project_dir, item.dataset_name, "ann", f"{item.name}.json")
+        ann = sly.Annotation.load_json_file(ann_path, g.project_meta)
+        height, width = ann.img_size[0], ann.img_size[1]
+
+        images.append(dict(
+            id=idx,
+            file_name=filename,
+            height=height,
+            width=width))
+
+        for label in ann.labels:
+            rect: sly.Rectangle = label.geometry.to_bbox()
+            data_anno = dict(
+                image_id=idx,
+                id=obj_count,
+                category_id=cat2label[label.obj_class.name],
+                bbox=[rect.left, rect.top, rect.width, rect.height],
+                area=rect.width * rect.height, # TODO: maybe calculate mask area?
+                iscrowd=0)
+            
+            # TODO: check that polygons work in practice
+            if isinstance(label.geometry, sly.Polygon) and task == "instance_segmentation":
+                poly_json = label.geometry.to_json()
+                poly_points = poly_json["points"]["exterior"]
+                poly = [(coords[0] + 0.5, coords[1] + 0.5) for coords in poly_points]
+                poly = [p for x in poly for p in x]
+                data_anno["segmentation"] = [poly]
+            elif isinstance(label.geometry, sly.Bitmap) and task == "instance_segmentation":
+                seg_mask = np.asarray(label.geometry.convert(sly.Bitmap)[0].data)
+                seg_mask_in_image_coords = mask_to_image_size(label, seg_mask, ann.img_size)
+                rle_seg_mask = binary_mask_to_rle(seg_mask_in_image_coords)
+                data_anno["segmentation"] = rle_seg_mask
+            
+            annotations.append(data_anno)
+            obj_count += 1
+
+    coco_format_json = dict(
+        images=images,
+        annotations=annotations,
+        categories=cats)
+    mmcv.dump(coco_format_json, save_path)

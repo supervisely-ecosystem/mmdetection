@@ -19,11 +19,6 @@
         Select task
     </el-button>
 
-    <div v-if="data.doneTask">
-        <i class="zmdi zmdi-check-circle ml5 mr5 mt10" style="color: #13ce66"></i>
-        <span style="color: #5a6772;">Selected task: {{state.task}}.</span>
-    </div>
-
     <el-button type="warning" class="regular mt10" :plain="true"
                @click="state.restartFrom = 2;"
                v-if="data.doneTask && !state.started">
