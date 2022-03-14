@@ -160,8 +160,8 @@ def init_cfg_splits(cfg, classes, palette, task):
 
 
 def init_cfg_training(cfg, state):
-    cfg.dataset_type = 'CocoDataset'
-    cfg.data_root = g.project_det_dir
+    cfg.dataset_type = 'SuperviselyDataset'
+    cfg.data_root = g.project_dir
 
     cfg.data.samples_per_gpu = state["batchSizePerGPU"]
     cfg.data.workers_per_gpu = state["workersPerGPU"]
@@ -192,11 +192,15 @@ def init_cfg_eval(cfg, state):
     cfg.evaluation.interval = state["valInterval"]
     # TODO: assign eval metrics
     # cfg.evaluation.metric = state["evalMetrics"]
-    cfg.evaluation.metric = ['bbox', 'segm'] # ["mAP"]
+    if state["task"] == "detection":
+        cfg.evaluation.metric = ['bbox']
+    elif state["task"] == "instance_segmentation":
+        cfg.evaluation.metric = ['bbox', 'segm']
     cfg.evaluation.save_best = "auto" if state["saveBest"] else None
     cfg.evaluation.rule = "greater"
     cfg.evaluation.out_dir = g.checkpoints_dir
     cfg.evaluation.by_epoch = True
+    cfg.evaluation.classwise = True
 
 def init_cfg_checkpoint(cfg, state, classes, palette):
     cfg.checkpoint_config.interval = state["checkpointInterval"]

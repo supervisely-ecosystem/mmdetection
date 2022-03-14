@@ -7,12 +7,12 @@
 >
     <el-button v-if="!state.doneMonitoring"
                type="primary" class="regular"
-               @click="state.started = true; command('train')"
+               @click="state.started = true; command('train');"
                :loading="state.started"
     >
         <i class="zmdi zmdi-play mr5"></i> Train
     </el-button>
-    <!--
+    
     <div v-if="data.outputUrl">
         <sly-field title="Training artifacts"
                    description="Training artifacts has been uploaded to Team Files">
@@ -26,9 +26,6 @@
             <span style="color: #5a6772;">Training has been successfully finished</span>
         </div>
     </div>
-    <sly-field v-if="state.preparingData" class="mt10">
-        <b style="color: #20a0ff">Preparing segmentation data (it may take a few minutes)...</b>
-    </sly-field>
 
     <sly-field v-if="data.eta" class="mt10"
                title="ETA"
@@ -57,7 +54,7 @@
         </div>
         <el-progress :percentage="data.progressPercentIter"></el-progress>
     </div>
-
+    
     <div class="mt15" v-if="state.started || state.doneMonitoring">
         <hr class="mt10 mb10" style="border: 0; border-top: 1px solid rgba(0,0,0,.12);"/>
         <sly-field title="Smoothing" description="Change the smoothing of line charts">
@@ -75,40 +72,43 @@
             >
             </el-slider>
         </sly-field>
-
-        <sly-field title="Main training charts" description="Real-time training metrics">
-            <div>{{state.chartTrainLoss.options.smoothingWeight}}</div>
+        
+        <sly-field title="Train" description="Real-time training metrics">
             <div class="fflex">
                 <sly-line-chart
-                        style="width: 35%;"
+                        style="width: 33%;"
                         :options.sync="state.chartLR.options"
                         :content="state.chartLR.series">
                 </sly-line-chart>
-
                 <sly-line-chart
-                        style="width: 35%;"
-                        :options.sync="state.chartTrainLoss.options"
-                        :content="state.chartTrainLoss.series">
+                        style="width: 33%;"
+                        :options.sync="state.chartLoss.options"
+                        :content="state.chartLoss.series">
+                </sly-line-chart>
+                <sly-line-chart
+                        style="width: 33%;"
+                        :options.sync="state.chartAcc.options"
+                        :content="state.chartAcc.series">
                 </sly-line-chart>
             </div>
         </sly-field>
-        <sly-field v-for="metric in data.availableMetrics"
-                   v-if="state.evalMetrics.includes(metric)"
-                   :title="metric.slice(1)">
+
+        <sly-field title="Validation" description="bbox and mask metrics">
             <div class="fflex">
                 <sly-line-chart
-                    v-for="mean_chart in state.mean_charts"
-                    v-if="metric === mean_chart.metric"
-                    style="width: 35%;"
-                    :options.sync="mean_chart.options"
-                    :content="mean_chart.series">
+                    style="width: 33%;"
+                    :options.sync="state.chartMAP.options"
+                    :content="state.chartMAP.series">
                 </sly-line-chart>
                 <sly-line-chart
-                    v-for="class_chart in state.class_charts"
-                    v-if="metric === class_chart.metric"
-                    style="width: 35%;"
-                    :options.sync="class_chart.options"
-                    :content="class_chart.series">
+                    style="width: 33%;"
+                    :options.sync="state.chartBoxClassAP.options"
+                    :content="state.chartBoxClassAP.series">
+                </sly-line-chart>
+                <sly-line-chart
+                    style="width: 33%;"
+                    :options.sync="state.chartMaskClassAP.options"
+                    :content="state.chartMaskClassAP.series">
                 </sly-line-chart>
             </div>
         </sly-field>
@@ -133,5 +133,4 @@
             </div>
         </sly-field>
     </div>
-    -->
 </sly-card>

@@ -77,7 +77,6 @@ def reload_task(task):
 
 
 def init(data, state):
-    print(state["task"])
     if state["task"] == "detection":
         state['pretrainedModel'] = 'TOOD'
     elif state["task"] == "instance_segmentation":
