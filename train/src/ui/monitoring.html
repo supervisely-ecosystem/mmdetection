@@ -106,6 +106,7 @@
                     :content="state.chartBoxClassAP.series">
                 </sly-line-chart>
                 <sly-line-chart
+                    v-if="state.task === 'instance_segmentation'"
                     style="width: 33%;"
                     :options.sync="state.chartMaskClassAP.options"
                     :content="state.chartMaskClassAP.series">

@@ -16,7 +16,12 @@
                 <div>Choose one of the prepared templates</div>
             </el-radio>
             <sly-field title="Template">
-                <el-select v-model="state.augsTemplateName" placeholder="Select template" :disabled="data.doneAugs">
+                <el-select 
+                    v-model="state.augsTemplateName"
+                    @change="command('select_template')"
+                    placeholder="Select template" 
+                    :disabled="data.doneAugs"
+                >
                     <el-option
                             v-for="item in data.augTemplates"
                             :key="item.name"

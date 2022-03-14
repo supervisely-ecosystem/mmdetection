@@ -332,11 +332,10 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
             
             # TODO: check that polygons work in practice
             if isinstance(label.geometry, sly.Polygon) and task == "instance_segmentation":
-                poly_json = label.geometry.to_json()
-                poly_points = poly_json["points"]["exterior"]
-                poly = [(coords[0] + 0.5, coords[1] + 0.5) for coords in poly_points]
-                poly = [p for x in poly for p in x]
-                data_anno["segmentation"] = [poly]
+                label_render = np.zeros(ann.img_size, dtype=np.uint8)
+                label.geometry._draw_impl(label_render, 1)
+                rle_seg_mask = binary_mask_to_rle(label_render.astype(np.bool))
+                data_anno["segmentation"] = rle_seg_mask
             elif isinstance(label.geometry, sly.Bitmap) and task == "instance_segmentation":
                 seg_mask = np.asarray(label.geometry.convert(sly.Bitmap)[0].data)
                 seg_mask_in_image_coords = mask_to_image_size(label, seg_mask, ann.img_size)

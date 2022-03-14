@@ -5,6 +5,9 @@ import os
 import sly_globals as g
 from mmcv import ConfigDict
 from mmdet.apis import set_random_seed
+import numpy as np
+import torch
+import random
 
 def init_class_weights(state, classes):
     if state["useClassWeights"]:
@@ -34,10 +37,10 @@ def init_cfg_decode_head(cfg, state, classes, class_weights, ind=0):
     return head
 
 def init_cfg_auxiliary_head(cfg, state, classes, class_weights):
-    head = dict(
+    head = ConfigDict(
         norm_cfg=cfg.norm_cfg,
         num_classes=len(classes),
-        loss_decode=dict(
+        loss_decode=ConfigDict(
             type=state["auxiliaryHeadLoss"],
             loss_weight=float(state["auxiliaryHeadLossWeight"]),
             class_weight=class_weights
@@ -58,8 +61,8 @@ def init_cfg_optimizer(cfg, state):
     cfg.optimizer.lr = state["lr"]
     cfg.optimizer.weight_decay = state["weightDecay"]
     if state["gradClipEnabled"]:
-        cfg.optimizer_config = dict(
-            grad_clip=dict(max_norm=state["maxNorm"], norm_type=2)
+        cfg.optimizer_config = ConfigDict(
+            grad_clip=ConfigDict(max_norm=state["maxNorm"], norm_type=2)
         )
     if hasattr(cfg.optimizer, "eps"):
         delattr(cfg.optimizer, "eps")
@@ -81,44 +84,46 @@ def init_cfg_optimizer(cfg, state):
             cfg.optimizer.momentum_decay = state["momentumDecay"]
 
 def init_cfg_pipelines(cfg):
-    cfg.train_pipeline = [
-        dict(type='LoadImageFromFile'),
-        dict(type='LoadAnnotations'),
-        dict(type='SlyImgAugs', config_path=augs.augs_config_path),
-        dict(type='Resize', img_scale=(cfg.crop_size[0], cfg.crop_size[1])),
-        dict(type='Normalize', **cfg.img_norm_cfg),
-        dict(type='DefaultFormatBundle'),
-        dict(type='Collect', keys=['img', 'gt_semantic_seg'], meta_keys=('filename', 'ori_filename', 'ori_shape',
-                                                                         'img_shape', 'scale_factor', 'img_norm_cfg')),
+    cfg.data.train.pipeline = [
+        ConfigDict(type='LoadImageFromFile'),
+        ConfigDict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+        ConfigDict(type='SlyImgAugs', config_path=augs.augs_config_path),
+        ConfigDict(type='Resize', img_scale=cfg.img_scale),
+        ConfigDict(type='Normalize', **cfg.img_norm_cfg),
+        ConfigDict(type='DefaultFormatBundle'),
+        ConfigDict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks'], meta_keys=('filename', 'ori_filename', 'ori_shape',
+                                                                         'img_shape', 'scale_factor', 'img_norm_cfg', 'pad_shape')),
     ]
 
-    cfg.val_pipeline = [
-        dict(type='LoadImageFromFile'),
-        dict(
+    cfg.data.val.pipeline = [
+        ConfigDict(type='LoadImageFromFile'),
+        ConfigDict(
             type='MultiScaleFlipAug',
-            img_scale=(cfg.crop_size[0], cfg.crop_size[1]),
+            img_scale=cfg.img_scale,
             flip=False,
             transforms=[
-                dict(type='Resize', keep_ratio=True),
-                dict(type='RandomFlip'),
-                dict(type='Normalize', **cfg.img_norm_cfg),
-                dict(type='ImageToTensor', keys=['img']),
-                dict(type='Collect', keys=['img']),
+                ConfigDict(type='Resize', keep_ratio=True),
+                ConfigDict(type='RandomFlip'),
+                ConfigDict(type='Normalize', **cfg.img_norm_cfg),
+                ConfigDict(type='Pad', size_divisor=32),
+                ConfigDict(type='ImageToTensor', keys=['img']),
+                ConfigDict(type='Collect', keys=['img']),
             ])
     ]
 
-    cfg.test_pipeline = [
-        dict(type='LoadImageFromFile'),
-        dict(
+    cfg.data.test.pipeline = [
+        ConfigDict(type='LoadImageFromFile'),
+        ConfigDict(
             type='MultiScaleFlipAug',
-            img_scale=(cfg.crop_size[0], cfg.crop_size[1]),
+            img_scale=cfg.img_scale,
             flip=False,
             transforms=[
-                dict(type='Resize', keep_ratio=True),
-                dict(type='RandomFlip'),
-                dict(type='Normalize', **cfg.img_norm_cfg),
-                dict(type='ImageToTensor', keys=['img']),
-                dict(type='Collect', keys=['img']),
+                ConfigDict(type='Resize', keep_ratio=True),
+                ConfigDict(type='RandomFlip'),
+                ConfigDict(type='Normalize', **cfg.img_norm_cfg),
+                ConfigDict(type='Pad', size_divisor=32),
+                ConfigDict(type='ImageToTensor', keys=['img']),
+                ConfigDict(type='Collect', keys=['img']),
             ])
     ]
 
@@ -131,7 +136,6 @@ def init_cfg_splits(cfg, classes, palette, task):
         cfg.data.train.proposal_file = None
         cfg.data.train.test_mode = False
         cfg.data.train.classes = classes
-        # cfg.data.train.task = task
         if hasattr(cfg.data.train, "times"):
             delattr(cfg.data.train, "times")
         if hasattr(cfg.data.train, "dataset"):
@@ -145,7 +149,6 @@ def init_cfg_splits(cfg, classes, palette, task):
         cfg.data.val.proposal_file = None
         cfg.data.val.test_mode = False
         cfg.data.val.classes = classes
-        # cfg.data.val.task = task
         cfg.data.val.samples_per_gpu = 2
 
         cfg.data.test.type = cfg.dataset_type
@@ -156,22 +159,30 @@ def init_cfg_splits(cfg, classes, palette, task):
         cfg.data.test.proposal_file = None
         cfg.data.test.test_mode = True
         cfg.data.test.classes = classes
-        # cfg.data.test.task = task
 
 
 def init_cfg_training(cfg, state):
     cfg.dataset_type = 'SuperviselyDataset'
     cfg.data_root = g.project_dir
 
+    cfg.seed = 0
+    set_random_seed(cfg.seed, deterministic=False)
+
+    def worker_init_fn(worker_id):
+        np.random.seed(cfg.seed + worker_id)
+        random.seed(cfg.seed + worker_id)
+        torch.manual_seed(cfg.seed + worker_id)
     cfg.data.samples_per_gpu = state["batchSizePerGPU"]
     cfg.data.workers_per_gpu = state["workersPerGPU"]
+    cfg.data.persistent_workers = True
+    cfg.data.worker_init_fn = worker_init_fn
+    cfg.data.prefetch_factor = 1
 
     # TODO: sync with state["gpusId"] if it will be needed
     cfg.gpu_ids = range(1)
     cfg.img_norm_cfg = dict(
-        mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-    # TODO: assign img_scale
-    # cfg.crop_size = (state["input_size"]["value"]["width"], state["input_size"]["value"]["height"])
+        mean=[103.53, 116.28, 123.675], std=[1.0, 1.0, 1.0], to_rgb=False)
+    cfg.img_scale = (state["input_size"]["value"]["width"], state["input_size"]["value"]["height"])
     cfg.load_from = g.local_weights_path
 
     cfg.work_dir = g.my_app.data_dir
@@ -190,8 +201,6 @@ def init_cfg_training(cfg, state):
 
 def init_cfg_eval(cfg, state):
     cfg.evaluation.interval = state["valInterval"]
-    # TODO: assign eval metrics
-    # cfg.evaluation.metric = state["evalMetrics"]
     if state["task"] == "detection":
         cfg.evaluation.metric = ['bbox']
     elif state["task"] == "instance_segmentation":
@@ -208,12 +217,12 @@ def init_cfg_checkpoint(cfg, state, classes, palette):
     cfg.checkpoint_config.max_keep_ckpts = state["maxKeepCkpts"] if state["maxKeepCkptsEnabled"] else None
     cfg.checkpoint_config.save_last = state["saveLast"]
     cfg.checkpoint_config.out_dir = g.checkpoints_dir
-    cfg.checkpoint_config.meta = dict(
+    cfg.checkpoint_config.meta = ConfigDict(
         CLASSES=classes,
         PALETTE=palette)
 
 def init_cfg_lr(cfg, state):
-    lr_config = dict(
+    lr_config = ConfigDict(
         policy=state["lrPolicy"],
         by_epoch=state["schedulerByEpochs"],
         warmup=state["warmup"] if state["useWarmup"] else None,
@@ -318,13 +327,11 @@ def init_cfg(state, classes, palette):
             raise ValueError("No mask head or model has multiple mask head.")
     init_cfg_optimizer(cfg, state)
     init_cfg_training(cfg, state)
-    # init_cfg_pipelines(cfg)
+    init_cfg_pipelines(cfg)
     init_cfg_splits(cfg, classes, palette, state["task"])
     init_cfg_eval(cfg, state)
     init_cfg_checkpoint(cfg, state, classes, palette)
     init_cfg_lr(cfg, state)
 
     # Set seed to facitate reproducing the result
-    cfg.seed = 0
-    set_random_seed(0, deterministic=False)
     return cfg

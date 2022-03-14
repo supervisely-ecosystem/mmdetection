@@ -7,3 +7,4 @@ data
 train/src/__pycache__
 train/src/ui/__pycache__
 .vscode
+*.png
