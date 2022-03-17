@@ -71,8 +71,7 @@ def init_charts(data, state):
     state["smoothing"] = 0.6
     # train charts
     state["chartLR"] = init_chart("LR", names=["lr"], xs = [[]], ys = [[]], smoothing=None, decimals=6, xdecimals=2)
-    state["chartLoss"] = init_chart("Loss", names=[], xs=[], ys=[], smoothing=state["smoothing"], decimals=6, xdecimals=2)
-    state["chartAcc"] = init_chart("Accuracy", names=["acc"], xs = [[]], ys = [[]], smoothing=state["smoothing"], decimals=6, xdecimals=2)
+    state["chartLoss"] = init_chart("Loss", names=["total", "bbox", "class", "mask", "iou", "rpn_class", "rpn_bbox"], xs=[[]] * 7, ys=[[]] * 7, smoothing=state["smoothing"], decimals=6, xdecimals=2)
     
     # val charts
     state["chartMAP"] = init_chart("Val mAP", names=[], xs=[], ys=[], smoothing=state["smoothing"], decimals=6, xdecimals=2)
@@ -90,7 +89,6 @@ def init_charts(data, state):
 def change_smoothing(api: sly.Api, task_id, context, state, app_logger):
     fields = [
         {"field": "state.chartLoss.options.smoothingWeight", "payload": state["smoothing"]},
-        {"field": "state.chartAcc.options.smoothingWeight", "payload": state["smoothing"]},
         {"field": "state.chartMAP.options.smoothingWeight", "payload": state["smoothing"]},
         {"field": "state.chartBoxClassAP.options.smoothingWeight", "payload": state["smoothing"]},
         {"field": "state.chartMaskClassAP.options.smoothingWeight", "payload": state["smoothing"]},
@@ -124,21 +122,8 @@ def upload_artifacts_and_log_progress():
     return res_dir
 
 def init_class_charts_series(state):
-    loss_series = [{"name": "total", "data": []}, {"name": "bbox", "data": []}, {"name": "class", "data": []}]
     mAP_series = [{"name": "bbox", "data": []}]
-    if hasattr(architectures.cfg.model, "rpn_head"):
-        loss_series.extend([{
-            "name": "rpn_bbox",
-            "data": []
-        },{
-            "name": "rpn_class",
-            "data": []
-        }])
     if state["task"] == "instance_segmentation":
-        loss_series.append({
-            "name": "mask",
-            "data": []
-        })
         mAP_series.append({
             "name": "mask",
             "data": []
@@ -151,7 +136,6 @@ def init_class_charts_series(state):
             "data": []
         })
     fields = [
-        {"field": "state.chartLoss.series", "payload": loss_series},
         {"field": "state.chartMAP.series", "payload": mAP_series},
         {"field": "state.chartBoxClassAP.series", "payload": per_class_series},
         {"field": "state.chartMaskClassAP.series", "payload": per_class_series}
@@ -164,6 +148,8 @@ def init_class_charts_series(state):
 @g.my_app.ignore_errors_and_show_dialog_window()
 def train(api: sly.Api, task_id, context, state, app_logger):
     init_class_charts_series(state)
+
+    
 
     try:
         sly.json.dump_json_file(state, os.path.join(g.info_dir, "ui_state.json"))
@@ -178,7 +164,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 
         # We can initialize the logger for training and have a look
         # at the final config used for training
-        # print(f'Config:\n{cfg.pretty_text}')
+        print(f'Config:\n{cfg.pretty_text}')
 
         # Build the dataset
         datasets = [build_dataset(cfg.data.train)]

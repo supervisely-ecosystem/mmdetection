@@ -15,47 +15,6 @@ def init_class_weights(state, classes):
     else:
         return [1] * len(classes)
 
-def init_cfg_decode_head(cfg, state, classes, class_weights, ind=0):
-    head = dict(
-        num_classes=len(classes),
-        loss_decode=dict(
-            type=state["decodeHeadLoss"],
-            loss_weight=float(state["decodeHeadLossWeight"]),
-            class_weight=class_weights,
-        )
-    )
-    if cfg.pretrained_model != "PointRend" or ind == 0:
-        head["norm_cfg"] = cfg.norm_cfg
-    if state["decodeHeadLoss"] == "DiceLoss":
-        head["loss_decode"]["smooth"] = state["decodeSmoothLoss"]
-        head["loss_decode"]["exponent"] = state["decodeExpLoss"]
-    elif state["decodeHeadLoss"] == "FocalLoss":
-        head["loss_decode"]["alpha"] = float(state["decodeAlpha"])
-        head["loss_decode"]["gamma"] = float(state["decodeGamma"])
-    elif state["decodeHeadLoss"] == "LovaszLoss":
-        head["loss_decode"]["reduction"] = "none"
-    return head
-
-def init_cfg_auxiliary_head(cfg, state, classes, class_weights):
-    head = ConfigDict(
-        norm_cfg=cfg.norm_cfg,
-        num_classes=len(classes),
-        loss_decode=ConfigDict(
-            type=state["auxiliaryHeadLoss"],
-            loss_weight=float(state["auxiliaryHeadLossWeight"]),
-            class_weight=class_weights
-        )
-    )
-    if state["auxiliaryHeadLoss"] == "DiceLoss":
-        head["loss_decode"]["smooth"] = state["auxiliarySmoothLoss"]
-        head["loss_decode"]["exponent"] = state["auxiliaryExpLoss"]
-    elif state["auxiliaryHeadLoss"] == "FocalLoss":
-        head["loss_decode"]["alpha"] = float(state["auxiliaryAlpha"])
-        head["loss_decode"]["gamma"] = float(state["auxiliaryGamma"])
-    elif state["auxiliaryHeadLoss"] == "LovaszLoss":
-        head["loss_decode"]["reduction"] = "none"
-    return head
-
 def init_cfg_optimizer(cfg, state):
     cfg.optimizer.type = state["optimizer"]
     cfg.optimizer.lr = state["lr"]
@@ -84,48 +43,23 @@ def init_cfg_optimizer(cfg, state):
             cfg.optimizer.momentum_decay = state["momentumDecay"]
 
 def init_cfg_pipelines(cfg):
-    cfg.data.train.pipeline = [
-        ConfigDict(type='LoadImageFromFile'),
-        ConfigDict(type='LoadAnnotations', with_bbox=True, with_mask=True),
-        ConfigDict(type='SlyImgAugs', config_path=augs.augs_config_path),
-        ConfigDict(type='Resize', img_scale=cfg.img_scale),
-        ConfigDict(type='Normalize', **cfg.img_norm_cfg),
-        ConfigDict(type='DefaultFormatBundle'),
-        ConfigDict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks'], meta_keys=('filename', 'ori_filename', 'ori_shape',
-                                                                         'img_shape', 'scale_factor', 'img_norm_cfg', 'pad_shape')),
-    ]
+    pipeline_steps_to_remove = ["RandomShift", "PhotoMetricDistortion"]
+    train_pipeline = []
+    for config_step in cfg.data.train.pipeline:
+        if config_step["type"] in pipeline_steps_to_remove:
+            continue
+        elif config_step["type"] == "LoadAnnotations":
+            train_pipeline.append(config_step)
+            train_pipeline.append(dict(type='SlyImgAugs', config_path=augs.augs_config_path))
+            continue
+        elif config_step["type"] == "LoadImageFromFile" and "to_float32" in config_step.keys():
+            if config_step["to_float32"]:
+                train_pipeline.append(dict(type="LoadImageFromFile"))
+            continue
+        train_pipeline.append(config_step)
+    
+    cfg.data.train.pipeline = train_pipeline
 
-    cfg.data.val.pipeline = [
-        ConfigDict(type='LoadImageFromFile'),
-        ConfigDict(
-            type='MultiScaleFlipAug',
-            img_scale=cfg.img_scale,
-            flip=False,
-            transforms=[
-                ConfigDict(type='Resize', keep_ratio=True),
-                ConfigDict(type='RandomFlip'),
-                ConfigDict(type='Normalize', **cfg.img_norm_cfg),
-                ConfigDict(type='Pad', size_divisor=32),
-                ConfigDict(type='ImageToTensor', keys=['img']),
-                ConfigDict(type='Collect', keys=['img']),
-            ])
-    ]
-
-    cfg.data.test.pipeline = [
-        ConfigDict(type='LoadImageFromFile'),
-        ConfigDict(
-            type='MultiScaleFlipAug',
-            img_scale=cfg.img_scale,
-            flip=False,
-            transforms=[
-                ConfigDict(type='Resize', keep_ratio=True),
-                ConfigDict(type='RandomFlip'),
-                ConfigDict(type='Normalize', **cfg.img_norm_cfg),
-                ConfigDict(type='Pad', size_divisor=32),
-                ConfigDict(type='ImageToTensor', keys=['img']),
-                ConfigDict(type='Collect', keys=['img']),
-            ])
-    ]
 
 def init_cfg_splits(cfg, classes, palette, task):
         cfg.data.train.type = cfg.dataset_type
@@ -180,9 +114,6 @@ def init_cfg_training(cfg, state):
 
     # TODO: sync with state["gpusId"] if it will be needed
     cfg.gpu_ids = range(1)
-    cfg.img_norm_cfg = dict(
-        mean=[103.53, 116.28, 123.675], std=[1.0, 1.0, 1.0], to_rgb=False)
-    cfg.img_scale = (state["input_size"]["value"]["width"], state["input_size"]["value"]["height"])
     cfg.load_from = g.local_weights_path
 
     cfg.work_dir = g.my_app.data_dir
@@ -191,6 +122,8 @@ def init_cfg_training(cfg, state):
         cfg.runner = ConfigDict()
     cfg.runner.type = "EpochBasedRunner"
     cfg.runner.max_epochs = state["epochs"]
+    if hasattr(cfg, "total_epochs"):
+        cfg.total_epochs = state["epochs"]
     if hasattr(cfg.runner, "max_iters"):
         delattr(cfg.runner, "max_iters")
 
@@ -201,10 +134,10 @@ def init_cfg_training(cfg, state):
 
 def init_cfg_eval(cfg, state):
     cfg.evaluation.interval = state["valInterval"]
-    if state["task"] == "detection":
-        cfg.evaluation.metric = ['bbox']
-    elif state["task"] == "instance_segmentation":
-        cfg.evaluation.metric = ['bbox', 'segm']
+    metrics = ['bbox']
+    if state["task"] == "instance_segmentation":
+        metrics.append('segm')
+    cfg.evaluation.metric = metrics
     cfg.evaluation.save_best = "auto" if state["saveBest"] else None
     cfg.evaluation.rule = "greater"
     cfg.evaluation.out_dir = g.checkpoints_dir
@@ -259,7 +192,7 @@ def init_cfg_lr(cfg, state):
         lr_config["cyclic_times"] = state["cyclicTimes"]
         lr_config["step_ratio_up"] = state["stepRatioUp"]
         lr_config["anneal_strategy"] = state["annealStrategy"]
-        lr_config["gamma"] = state["cyclicGamma"]
+        # lr_config["gamma"] = state["cyclicGamma"]
     elif state["lrPolicy"] == "OneCycle":
         lr_config["anneal_strategy"] = state["annealStrategy"]
         lr_config["max_lr"] = [float(maxlr) for maxlr in state["maxLR"].split(",")]
@@ -279,59 +212,93 @@ def init_cfg(state, classes, palette):
     #     cfg.model.backbone.norm_cfg = cfg.norm_cfg
 
     # class_weights = init_class_weights(state, classes)
-    '''
-    if isinstance(cfg.model.decode_head, list):
-        for i in range(len(cfg.model.decode_head)):
-            head = init_cfg_decode_head(cfg, state, classes, class_weights, ind=i)
-            for key in head:
-                cfg.model.decode_head[i][key] = head[key]
-    else:
-        head = init_cfg_decode_head(cfg, state, classes, class_weights)
-        for key in head:
-            cfg.model.decode_head[key] = head[key]
-
-    init_cfg_decode_head(cfg, state, classes, class_weights)
-    if state["useAuxiliaryHead"]:
-        if isinstance(cfg.model.auxiliary_head, list):
-            for i in range(len(cfg.model.auxiliary_head)):
-                head = init_cfg_auxiliary_head(cfg, state, classes, class_weights)
-                for key in head:
-                    cfg.model.auxiliary_head[i][key] = head[key]
-        else:
-            head = init_cfg_auxiliary_head(cfg, state, classes, class_weights)
-            for key in head:
-                cfg.model.auxiliary_head[key] = head[key]
-    '''
+    
     # modify num classes of the model in box head
-    if hasattr(cfg.model, "roi_head"):
-        if hasattr(cfg.model.roi_head, "bbox_head") and not isinstance(cfg.model.roi_head.bbox_head, list):
-            cfg.model.roi_head.bbox_head.num_classes = len(classes)
+    if state["task"] == "detection" or (state["task"] == "instance_segmentation" and cfg.pretrained_model != "SOLO"):
+        if hasattr(cfg.model, "roi_head"):
+            if hasattr(cfg.model.roi_head, "bbox_head") and not isinstance(cfg.model.roi_head.bbox_head, list):
+                cfg.model.roi_head.bbox_head.num_classes = len(classes)
+            elif hasattr(cfg.model.roi_head, "bbox_head") and isinstance(cfg.model.roi_head.bbox_head, list):
+                for i in range(len(cfg.model.roi_head.bbox_head)):
+                    cfg.model.roi_head.bbox_head[i].num_classes = len(classes)
+            else:
+                raise ValueError("No bbox head in roi head")
+                
+        elif hasattr(cfg.model, "bbox_head") and not isinstance(cfg.model.bbox_head, list):
+            cfg.model.bbox_head.num_classes = len(classes)
+        elif hasattr(cfg.model, "bbox_head") and isinstance(cfg.model.bbox_head, list):
+            for i in range(len(cfg.model.bbox_head)):
+                cfg.model.bbox_head[i].num_classes = len(classes)
         else:
-            raise ValueError("No bbox head in roi head")
-            
-    elif hasattr(cfg.model, "bbox_head") and not isinstance(cfg.model.bbox_head, list):
-        cfg.model.bbox_head.num_classes = len(classes)
-    else:
-        raise ValueError("No bbox head or model has multiple bbox head.")
+            raise ValueError("No bbox head.")
 
     # modify num classes of the model in mask head
     if state["task"] == "instance_segmentation":
         if hasattr(cfg.model, "roi_head"):
             if hasattr(cfg.model.roi_head, "mask_head") and not isinstance(cfg.model.roi_head.mask_head, list):
                 cfg.model.roi_head.mask_head.num_classes = len(classes)
+            elif hasattr(cfg.model.roi_head, "mask_head") and isinstance(cfg.model.roi_head.mask_head, list):
+                for i in range(len(cfg.model.roi_head.mask_head)):
+                    cfg.model.roi_head.mask_head[i].num_classes = len(classes)
             else:
                 raise ValueError("No mask head in roi head")
         elif hasattr(cfg.model, "mask_head") and not isinstance(cfg.model.mask_head, list):
             cfg.model.mask_head.num_classes = len(classes)
+        elif hasattr(cfg.model, "mask_head") and isinstance(cfg.model.mask_head, list):
+            for i in range(len(cfg.model.mask_head)):
+                cfg.model.mask_head[i].num_classes = len(classes)
         else:
-            raise ValueError("No mask head or model has multiple mask head.")
-    init_cfg_optimizer(cfg, state)
-    init_cfg_training(cfg, state)
-    init_cfg_pipelines(cfg)
-    init_cfg_splits(cfg, classes, palette, state["task"])
-    init_cfg_eval(cfg, state)
-    init_cfg_checkpoint(cfg, state, classes, palette)
-    init_cfg_lr(cfg, state)
+            raise ValueError("No mask head.")
 
-    # Set seed to facitate reproducing the result
+        # other heads
+        if hasattr(cfg.model, "roi_head"):
+            if hasattr(cfg.model.roi_head, "glbctx_head"):
+                cfg.model.roi_head.glbctx_head.num_classes = len(classes)
+            
+            if hasattr(cfg.model.roi_head, "point_head"):
+                cfg.model.roi_head.point_head.num_classes = len(classes)
+
+            if hasattr(cfg.model.roi_head, "mask_iou_head"):
+                cfg.model.roi_head.mask_iou_head.num_classes = len(classes)
+
+        if hasattr(cfg.model, "segm_head"):
+            cfg.model.segm_head.num_classes = len(classes)
+    # init_cfg_optimizer(cfg, state)
+    # init_cfg_training(cfg, state)
+    cfg.evaluation.interval = 12
+    cfg.data_root = g.project_dir
+    cfg.load_from = g.local_weights_path
+    cfg.work_dir = g.my_app.data_dir
+    cfg.log_config.interval = state["logConfigInterval"]
+    cfg.log_config.hooks = [
+        dict(type='SuperviselyLoggerHook', by_epoch=False)
+    ]
+    # init_cfg_pipelines(cfg)
+    # init_cfg_splits(cfg, classes, palette, state["task"])
+    cfg.dataset_type = "CocoDataset"
+    cfg.data.train.data_root = cfg.data_root
+    cfg.data.train.type = cfg.dataset_type
+    cfg.data.train.ann_file = splits.train_set_path
+    cfg.data.train.img_prefix = ''
+    cfg.data.train.test_mode = False
+    cfg.data.train.classes = classes
+    cfg.data.val.data_root = cfg.data_root
+    cfg.data.val.type = cfg.dataset_type
+    cfg.data.val.ann_file = splits.val_set_path
+    cfg.data.val.img_prefix = ''
+    cfg.data.val.test_mode = False
+    cfg.data.val.classes = classes
+    cfg.data.test.data_root = cfg.data_root
+    cfg.data.test.type = cfg.dataset_type
+    cfg.data.test.ann_file = splits.val_set_path
+    cfg.data.test.img_prefix = ''
+    cfg.data.test.test_mode = True
+    cfg.data.test.classes = classes
+    cfg.gpu_ids = range(1)
+    cfg.seed = 0
+    set_random_seed(cfg.seed, deterministic=False)
+    # init_cfg_eval(cfg, state)
+    # init_cfg_checkpoint(cfg, state, classes, palette)
+    # init_cfg_lr(cfg, state)
+
     return cfg

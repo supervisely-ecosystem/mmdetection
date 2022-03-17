@@ -76,19 +76,14 @@
         <sly-field title="Train" description="Real-time training metrics">
             <div class="fflex">
                 <sly-line-chart
-                        style="width: 33%;"
+                        style="width: 40%;"
                         :options.sync="state.chartLR.options"
                         :content="state.chartLR.series">
                 </sly-line-chart>
                 <sly-line-chart
-                        style="width: 33%;"
+                        style="width: 40%;"
                         :options.sync="state.chartLoss.options"
                         :content="state.chartLoss.series">
-                </sly-line-chart>
-                <sly-line-chart
-                        style="width: 33%;"
-                        :options.sync="state.chartAcc.options"
-                        :content="state.chartAcc.series">
                 </sly-line-chart>
             </div>
         </sly-field>

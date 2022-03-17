@@ -8,8 +8,10 @@ import itertools
 from terminaltables import AsciiTable
 
 import mmcv
+from mmcv.runner.hooks.evaluation import EvalHook as mmcv_eval
+from mmdet.core.evaluation.eval_hooks import EvalHook as mmdet_eval
 from mmdet.datasets.coco import CocoDataset
-from mmdet.datasets.api_wrappers import COCOeval
+from mmdet.datasets.api_wrappers import COCO, COCOeval
 from mmdet.datasets.builder import DATASETS
 from mmcv.utils import print_log
 
@@ -143,6 +145,7 @@ class SuperviselyDataset(CocoDataset):
                     cocoEval.summarize()
                 print_log('\n' + redirect_string.getvalue(), logger=logger)
 
+                class_metrics = {}
                 if classwise:  # Compute per-category AP
                     # Compute per-category AP
                     # from https://github.com/facebookresearch/detectron2/
@@ -161,7 +164,7 @@ class SuperviselyDataset(CocoDataset):
                             ap = np.mean(precision)
                         else:
                             ap = float('nan')
-                        eval_results[f'{metric}_AP_{nm["name"]}'] = ap
+                        class_metrics[f'{metric}_AP_{nm["name"]}'] = ap
                         results_per_category.append(
                             (f'{nm["name"]}', f'{float(ap):0.3f}'))
 
@@ -188,6 +191,8 @@ class SuperviselyDataset(CocoDataset):
                     val = float(
                         f'{cocoEval.stats[coco_metric_names[metric_item]]:.3f}'
                     )
+                    eval_results[key] = val
+                for key, val in class_metrics.items():
                     eval_results[key] = val
                 ap = cocoEval.stats[:6]
                 eval_results[f'{metric}_mAP_copypaste'] = (

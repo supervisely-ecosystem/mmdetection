@@ -208,6 +208,7 @@ def download_custom_config(state):
 
 def init_default_cfg_args(cfg):
     params = []
+    # TODO: check place of bs and workers (cfg.data.train...)
     if hasattr(cfg.data, "samples_per_gpu"):
         params.extend([{
             "field": "state.batchSizePerGPU",

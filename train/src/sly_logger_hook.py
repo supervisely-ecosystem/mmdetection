@@ -1,7 +1,7 @@
 import datetime
 from mmcv.runner.hooks import HOOKS
+from mmcv.runner.hooks import HOOKS
 from mmcv.runner.hooks.logger.text import TextLoggerHook
-from mmdet.datasets.coco import CocoDataset
 import supervisely_lib as sly
 from sly_train_progress import add_progress_to_request
 import sly_globals as g
@@ -49,25 +49,29 @@ class SuperviselyLoggerHook(TextLoggerHook):
         add_progress_to_request(fields, "Epoch", self.progress_epoch)
         add_progress_to_request(fields, "Iter", self.progress_iter)
         
-        epoch_float = float(self.progress_epoch.current) + float(self.progress_iter.current) / float(self.progress_iter.total)
         if log_dict['mode'] == 'train':
+            epoch_float = float(self.progress_epoch.current) + float(self.progress_iter.current) / float(self.progress_iter.total)
+            loss_names = ["loss_bbox", "loss_cls", "loss_mask", "loss_iou", "loss_rpn_cls", "loss_rpn_bbox"]
+        
+            for loss_name in loss_names:
+                if loss_name in log_dict.keys():
+                    continue
+                losses = []
+                for key, val in log_dict.items():
+                    if key.endswith(loss_name):
+                        losses.append(val)
+                if losses:
+                    log_dict[loss_name] = sum(losses)
+
             fields.extend([
                 {"field": "state.chartLR.series[0].data", "payload": [[epoch_float, round(log_dict["lr"], 6)]], "append": True},
-                {"field": "state.chartAcc.series[0].data", "payload": [[epoch_float, round(log_dict["acc"], 6)]], "append": True},
                 {"field": "state.chartLoss.series[0].data", "payload": [[epoch_float, round(log_dict["loss"], 6)]], "append": True},
-                {"field": "state.chartLoss.series[1].data", "payload": [[epoch_float, round(log_dict["loss_bbox"], 6)]], "append": True},
-                {"field": "state.chartLoss.series[2].data", "payload": [[epoch_float, round(log_dict["loss_cls"], 6)]], "append": True}
             ])
-            if "loss_rpn_bbox" in log_dict.keys() and "loss_rpn_cls" in log_dict.keys():
-                fields.extend([
-                    {"field": "state.chartLoss.series[3].data", "payload": [[epoch_float, round(log_dict["loss_rpn_bbox"], 6)]], "append": True},
-                    {"field": "state.chartLoss.series[4].data", "payload": [[epoch_float, round(log_dict["loss_rpn_cls"], 6)]], "append": True}
-                ])
-                if "loss_mask" in log_dict.keys():
-                    fields.append({"field": "state.chartLoss.series[5].data", "payload": [[epoch_float, round(log_dict["loss_mask"], 6)]], "append": True})
-            elif "loss_mask" in log_dict.keys():
-                    fields.append({"field": "state.chartLoss.series[3].data", "payload": [[epoch_float, round(log_dict["loss_mask"], 6)]], "append": True})
+            for idx, loss_name in enumerate(loss_names):
+                if loss_name in log_dict.keys():
+                    fields.append({"field": f"state.chartLoss.series[{idx + 1}].data", "payload": [[epoch_float, round(log_dict[loss_name], 6)]], "append": True})
 
+            
             if 'time' in log_dict.keys():
                 fields.extend([
                     {"field": "state.chartTime.series[0].data", "payload": [[epoch_float, log_dict["time"]]],
@@ -78,6 +82,7 @@ class SuperviselyLoggerHook(TextLoggerHook):
                      "append": True},
                 ])
         if log_dict['mode'] == 'val':
+            '''
             for class_ind, class_name in enumerate(cls.selected_classes):
                 fields.append(
                     {"field": f"state.chartBoxClassAP.series[{class_ind}].data", "payload": [[log_dict["epoch"], log_dict[f"bbox_AP_{class_name}"]]], "append": True}
@@ -86,6 +91,7 @@ class SuperviselyLoggerHook(TextLoggerHook):
                     fields.append(
                         {"field": f"state.chartMaskClassAP.series[{class_ind}].data", "payload": [[log_dict["epoch"], log_dict[f"segm_AP_{class_name}"]]], "append": True}
                     )
+            '''
             fields.append(
                 {"field": f"state.chartMAP.series[0].data", "payload": [[log_dict["epoch"], log_dict[f"bbox_mAP"]]], "append": True}
             )

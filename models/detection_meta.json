@@ -90,12 +90,6 @@
     "year": 2020
   },
   {
-    "model_name" : "CascadeRPN",
-    "yml_file" : "cascade_rpn/metafile.yml",
-    "paper_from": "NeurIPS",
-    "year": 2019
-  },
-  {
     "model_name" : "Free Anchor",
     "yml_file" : "free_anchor/metafile.yml",
     "paper_from": "NeurIPS",

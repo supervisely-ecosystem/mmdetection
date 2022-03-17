@@ -20,7 +20,7 @@ class SlyImgAugs(object):
         boxes = [BoundingBox(box[0], box[1], box[0] + box[2], box[1] + box[3]) for box in bbox]
         boxes = BoundingBoxesOnImage(boxes, shape=img.shape[:2])
         res_img, res_boxes, _ = sly.imgaug_utils._apply(augs, img, boxes=boxes)
-        res_boxes = [[res_box.x1, res_box.y1, res_box.x2 - res_box.x1, res_box.y2 - res_box.y1] for res_box in res_boxes]
+        res_boxes = np.array([[res_box.x1, res_box.y1, res_box.x2 - res_box.x1, res_box.y2 - res_box.y1] for res_box in res_boxes], dtype=np.float32)
 
         return res_img, res_boxes
 
