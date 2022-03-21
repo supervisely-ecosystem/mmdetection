@@ -82,7 +82,6 @@ class SuperviselyLoggerHook(TextLoggerHook):
                      "append": True},
                 ])
         if log_dict['mode'] == 'val':
-            '''
             for class_ind, class_name in enumerate(cls.selected_classes):
                 fields.append(
                     {"field": f"state.chartBoxClassAP.series[{class_ind}].data", "payload": [[log_dict["epoch"], log_dict[f"bbox_AP_{class_name}"]]], "append": True}
@@ -91,7 +90,6 @@ class SuperviselyLoggerHook(TextLoggerHook):
                     fields.append(
                         {"field": f"state.chartMaskClassAP.series[{class_ind}].data", "payload": [[log_dict["epoch"], log_dict[f"segm_AP_{class_name}"]]], "append": True}
                     )
-            '''
             fields.append(
                 {"field": f"state.chartMAP.series[0].data", "payload": [[log_dict["epoch"], log_dict[f"bbox_mAP"]]], "append": True}
             )

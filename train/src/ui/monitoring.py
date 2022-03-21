@@ -3,7 +3,6 @@ from sly_train_progress import init_progress, _update_progress_ui
 import sly_globals as g
 import os
 import cv2
-import numpy as np
 from functools import partial
 import mmcv
 from mmcv.cnn.utils import revert_sync_batchnorm
@@ -13,7 +12,6 @@ from mmdet.models import build_detector
 from init_cfg import init_cfg
 import splits
 import json
-import architectures
 
 # ! required to be left here despite not being used
 import sly_imgaugs
@@ -153,18 +151,18 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 
     try:
         sly.json.dump_json_file(state, os.path.join(g.info_dir, "ui_state.json"))
-        '''
-        os.makedirs(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1]), exist_ok=True)
-        cfg.dump(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1], "config.py"))
-        '''
+        
         classes_json = g.project_meta.obj_classes.to_json()
         classes = [obj["title"] for obj in classes_json if obj["title"]]
         
         cfg = init_cfg(state, classes, None)
-
+        # dump config
+        os.makedirs(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1]), exist_ok=True)
+        cfg.dump(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1], "config.py"))
+        
         # We can initialize the logger for training and have a look
         # at the final config used for training
-        print(f'Config:\n{cfg.pretty_text}')
+        print(f'Ready config:\n{cfg.pretty_text}')
 
         # Build the dataset
         datasets = [build_dataset(cfg.data.train)]
@@ -175,8 +173,6 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         # Add an attribute for visualization convenience
         model.CLASSES = datasets[0].CLASSES
         model = revert_sync_batchnorm(model)
-        # Create work_dir
-        os.makedirs(os.path.abspath(cfg.work_dir), exist_ok=True)
         train_detector(model, datasets, cfg, distributed=False, validate=True)
 
         # debug inference
@@ -184,10 +180,8 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             sample = json.load(set_file)["images"][0]["file_name"]
         inference_image_path = os.path.join(g.project_dir, sample)
         img = mmcv.imread(inference_image_path)
-
         model.cfg = cfg
         result = inference_detector(model, img)
-
         img = show_result_pyplot(model, img, result)
         cv2.imwrite("/tmp/mmdetection/tmp_seg.png", img)
 

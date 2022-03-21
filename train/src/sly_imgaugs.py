@@ -68,6 +68,10 @@ class SlyImgAugs(object):
 
         img = results["img"]
         boxes = results["gt_bboxes"]
+        float32 = False
+        if img.dtype == np.float32:
+            float32 = True
+        img = img.astype(np.uint8)
 
         if "gt_masks" in results.keys():
             masks = results["gt_masks"]
@@ -75,6 +79,8 @@ class SlyImgAugs(object):
             results["gt_masks"] = res_masks
         else:
             res_img, res_boxes = self.apply_to_image_and_bbox(self.augs, img, boxes)
+        if float32:
+            res_img = res_img.astype(np.float32)
         results["img"] = res_img
         results["gt_bboxes"] = res_boxes
         results['img_shape'] = res_img.shape

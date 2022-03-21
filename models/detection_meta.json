@@ -57,7 +57,8 @@
     "model_name" : "Side-Aware Boundary Localization",
     "yml_file" : "sabl/metafile.yml",
     "paper_from": "ECCV",
-    "year": 2020
+    "year": 2020,
+    "exclude": "sabl_cascade*"
   },
   {
     "model_name" : "AutoAssign",
@@ -135,7 +136,8 @@
     "model_name" : "Guided Anchoring",
     "yml_file" : "guided_anchoring/metafile.yml",
     "paper_from": "CVPR",
-    "year": 2019
+    "year": 2019,
+    "exclude": "ga_rpn*"
   },
   {
     "model_name" : "Grid R-CNN",
@@ -159,7 +161,8 @@
     "model_name" : "Cascade R-CNN",
     "yml_file" : "cascade_rcnn/metafile.yml",
     "paper_from": "CVPR",
-    "year": 2018
+    "year": 2018,
+    "exclude": "cascade_mask*"
   },
   {
     "model_name" : "RetinaNet",

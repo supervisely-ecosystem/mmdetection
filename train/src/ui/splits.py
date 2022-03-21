@@ -72,8 +72,6 @@ def init(project_info, project_meta: sly.ProjectMeta, data, state):
 
 
 def restart(data, state):
-    state["collapsedSplits"] = False
-    state["disabledSplits"] = False
     data["doneSplits"] = False
 
 

@@ -1,13 +1,9 @@
 import architectures
 import augs
 import splits
-import os
 import sly_globals as g
 from mmcv import ConfigDict
 from mmdet.apis import set_random_seed
-import numpy as np
-import torch
-import random
 
 def init_class_weights(state, classes):
     if state["useClassWeights"]:
@@ -20,9 +16,12 @@ def init_cfg_optimizer(cfg, state):
     cfg.optimizer.lr = state["lr"]
     cfg.optimizer.weight_decay = state["weightDecay"]
     if state["gradClipEnabled"]:
-        cfg.optimizer_config = ConfigDict(
-            grad_clip=ConfigDict(max_norm=state["maxNorm"], norm_type=2)
-        )
+        if not hasattr(cfg, "optimizer_config"):
+            cfg.optimizer_config = ConfigDict(
+                grad_clip=ConfigDict(max_norm=state["maxNorm"], norm_type=2)
+            )
+        else:
+            cfg.optimizer_config.grad_clip=ConfigDict(max_norm=state["maxNorm"], norm_type=2)
     if hasattr(cfg.optimizer, "eps"):
         delattr(cfg.optimizer, "eps")
 
@@ -43,79 +42,82 @@ def init_cfg_optimizer(cfg, state):
             cfg.optimizer.momentum_decay = state["momentumDecay"]
 
 def init_cfg_pipelines(cfg):
-    pipeline_steps_to_remove = ["RandomShift", "PhotoMetricDistortion"]
+    if cfg.pretrained_model == "YOLOX":
+        cfg.data.train.dataset.pipeline.append(dict(type='SlyImgAugs', config_path=augs.augs_config_path))
+        train_steps_to_remove = ["RandomAffine", "YOLOXHSVRandomAug"]
+        train_pipeline = []
+        for config_step in cfg.data.train.pipeline:
+            if config_step["type"] in train_steps_to_remove:
+                continue
+            train_pipeline.append(config_step)
+        cfg.data.train.pipeline = train_pipeline
+        return
+    train_steps_to_remove = ["RandomShift", "PhotoMetricDistortion"]
     train_pipeline = []
     for config_step in cfg.data.train.pipeline:
-        if config_step["type"] in pipeline_steps_to_remove:
+        if config_step["type"] in train_steps_to_remove:
             continue
         elif config_step["type"] == "LoadAnnotations":
             train_pipeline.append(config_step)
             train_pipeline.append(dict(type='SlyImgAugs', config_path=augs.augs_config_path))
             continue
-        elif config_step["type"] == "LoadImageFromFile" and "to_float32" in config_step.keys():
-            if config_step["to_float32"]:
-                train_pipeline.append(dict(type="LoadImageFromFile"))
-            continue
         train_pipeline.append(config_step)
-    
     cfg.data.train.pipeline = train_pipeline
 
 
 def init_cfg_splits(cfg, classes, palette, task):
-        cfg.data.train.type = cfg.dataset_type
-        cfg.data.train.data_root = cfg.data_root
-        cfg.data.train.ann_file = splits.train_set_path
-        cfg.data.train.img_prefix = ''
-        cfg.data.train.seg_prefix = None
-        cfg.data.train.proposal_file = None
-        cfg.data.train.test_mode = False
-        cfg.data.train.classes = classes
-        if hasattr(cfg.data.train, "times"):
-            delattr(cfg.data.train, "times")
-        if hasattr(cfg.data.train, "dataset"):
-            delattr(cfg.data.train, "dataset")
+    cfg.dataset_type = "SuperviselyDataset"
+    cfg.data_root = g.project_dir
 
-        cfg.data.val.type = cfg.dataset_type
-        cfg.data.val.data_root = cfg.data_root
-        cfg.data.val.ann_file = splits.val_set_path
-        cfg.data.val.img_prefix = ''
-        cfg.data.val.seg_prefix = None
-        cfg.data.val.proposal_file = None
-        cfg.data.val.test_mode = False
-        cfg.data.val.classes = classes
-        cfg.data.val.samples_per_gpu = 2
+    train_dataset = cfg.data.train
+    val_dataset = cfg.data.val
+    test_dataset = cfg.data.test
 
-        cfg.data.test.type = cfg.dataset_type
-        cfg.data.test.data_root = cfg.data_root
-        cfg.data.test.ann_file = splits.val_set_path
-        cfg.data.test.img_prefix = ''
-        cfg.data.test.seg_prefix = None
-        cfg.data.test.proposal_file = None
-        cfg.data.test.test_mode = True
-        cfg.data.test.classes = classes
+    if cfg.data.train.type == "RepeatDataset":
+        cfg.data.train = cfg.data.train.dataset
+        train_dataset = cfg.data.train
+    elif cfg.data.train.type == "MultiImageMixDataset":
+        train_dataset = cfg.data.train.dataset
+
+    train_dataset.data_root = cfg.data_root
+    train_dataset.type = cfg.dataset_type
+    train_dataset.ann_file = splits.train_set_path
+    train_dataset.img_prefix = ''
+    train_dataset.test_mode = False
+    train_dataset.classes = classes
+    if hasattr(train_dataset, "times"):
+        delattr(train_dataset, "times")
+    if hasattr(train_dataset, "dataset"):
+        delattr(train_dataset, "dataset")
+
+    val_dataset.data_root = cfg.data_root
+    val_dataset.type = cfg.dataset_type
+    val_dataset.ann_file = splits.val_set_path
+    val_dataset.img_prefix = ''
+    val_dataset.test_mode = False
+    val_dataset.classes = classes
+    # TODO: decside what to do with this
+    # val_dataset.samples_per_gpu = 2
+    
+    test_dataset.data_root = cfg.data_root
+    test_dataset.type = cfg.dataset_type
+    test_dataset.ann_file = splits.val_set_path
+    test_dataset.img_prefix = ''
+    test_dataset.test_mode = True
+    test_dataset.classes = classes
 
 
 def init_cfg_training(cfg, state):
-    cfg.dataset_type = 'SuperviselyDataset'
-    cfg.data_root = g.project_dir
-
     cfg.seed = 0
     set_random_seed(cfg.seed, deterministic=False)
 
-    def worker_init_fn(worker_id):
-        np.random.seed(cfg.seed + worker_id)
-        random.seed(cfg.seed + worker_id)
-        torch.manual_seed(cfg.seed + worker_id)
     cfg.data.samples_per_gpu = state["batchSizePerGPU"]
     cfg.data.workers_per_gpu = state["workersPerGPU"]
     cfg.data.persistent_workers = True
-    cfg.data.worker_init_fn = worker_init_fn
-    cfg.data.prefetch_factor = 1
 
     # TODO: sync with state["gpusId"] if it will be needed
     cfg.gpu_ids = range(1)
     cfg.load_from = g.local_weights_path
-
     cfg.work_dir = g.my_app.data_dir
 
     if not hasattr(cfg, "runner"):
@@ -164,7 +166,9 @@ def init_cfg_lr(cfg, state):
         warmup_ratio=state["warmupRatio"]
     )
     if state["lrPolicy"] == "Step":
-        lr_config["lr_step"] = [int(step) for step in state["lr_step"].split(",")]
+        steps = [int(step) for step in state["lr_step"].split(",")]
+        assert len(steps)
+        lr_config["step"] = steps
         lr_config["gamma"] = state["gamma"]
         lr_config["min_lr"] = state["minLR"]
     elif state["lrPolicy"] == "Exp":
@@ -203,16 +207,8 @@ def init_cfg_lr(cfg, state):
         lr_config["three_phase"] = state["threePhase"]
     cfg.lr_config = lr_config
 
-def init_cfg(state, classes, palette):
-    cfg = architectures.cfg
 
-    # Since we use ony one GPU, BN is used instead of SyncBN
-    # cfg.norm_cfg = dict(type='BN', requires_grad=True)
-    # if cfg.pretrained_model not in ["DPT", "SegFormer", "SETR", "Swin Transformer", "Twins", "ViT"]:
-    #     cfg.model.backbone.norm_cfg = cfg.norm_cfg
-
-    # class_weights = init_class_weights(state, classes)
-    
+def init_model(cfg, classes, state):
     # modify num classes of the model in box head
     if state["task"] == "detection" or (state["task"] == "instance_segmentation" and cfg.pretrained_model != "SOLO"):
         if hasattr(cfg.model, "roi_head"):
@@ -263,42 +259,18 @@ def init_cfg(state, classes, palette):
 
         if hasattr(cfg.model, "segm_head"):
             cfg.model.segm_head.num_classes = len(classes)
-    # init_cfg_optimizer(cfg, state)
-    # init_cfg_training(cfg, state)
-    cfg.evaluation.interval = 12
-    cfg.data_root = g.project_dir
-    cfg.load_from = g.local_weights_path
-    cfg.work_dir = g.my_app.data_dir
-    cfg.log_config.interval = state["logConfigInterval"]
-    cfg.log_config.hooks = [
-        dict(type='SuperviselyLoggerHook', by_epoch=False)
-    ]
-    # init_cfg_pipelines(cfg)
-    # init_cfg_splits(cfg, classes, palette, state["task"])
-    cfg.dataset_type = "CocoDataset"
-    cfg.data.train.data_root = cfg.data_root
-    cfg.data.train.type = cfg.dataset_type
-    cfg.data.train.ann_file = splits.train_set_path
-    cfg.data.train.img_prefix = ''
-    cfg.data.train.test_mode = False
-    cfg.data.train.classes = classes
-    cfg.data.val.data_root = cfg.data_root
-    cfg.data.val.type = cfg.dataset_type
-    cfg.data.val.ann_file = splits.val_set_path
-    cfg.data.val.img_prefix = ''
-    cfg.data.val.test_mode = False
-    cfg.data.val.classes = classes
-    cfg.data.test.data_root = cfg.data_root
-    cfg.data.test.type = cfg.dataset_type
-    cfg.data.test.ann_file = splits.val_set_path
-    cfg.data.test.img_prefix = ''
-    cfg.data.test.test_mode = True
-    cfg.data.test.classes = classes
-    cfg.gpu_ids = range(1)
-    cfg.seed = 0
-    set_random_seed(cfg.seed, deterministic=False)
-    # init_cfg_eval(cfg, state)
-    # init_cfg_checkpoint(cfg, state, classes, palette)
-    # init_cfg_lr(cfg, state)
+
+def init_cfg(state, classes, palette):
+    cfg = architectures.cfg
+
+    # class_weights = init_class_weights(state, classes)
+    init_model(cfg, classes, state)
+    init_cfg_optimizer(cfg, state)
+    init_cfg_training(cfg, state)
+    init_cfg_splits(cfg, classes, palette, state["task"])
+    init_cfg_pipelines(cfg)
+    init_cfg_eval(cfg, state)
+    init_cfg_checkpoint(cfg, state, classes, palette)
+    init_cfg_lr(cfg, state)
 
     return cfg

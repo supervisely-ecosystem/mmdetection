@@ -11,8 +11,6 @@ def init(data, state):
 
 
 def restart(data, state):
-    state["collapsedTask"] = False
-    state["disabledTask"] = False
     data["doneTask"] = False
 
 
@@ -24,7 +22,6 @@ def select_task(api: sly.Api, task_id, context, state, app_logger):
     # TODO: add loading text while update architectures is performing
     architectures.reload_task(state["task"])
     fields = [
-        {"field": "state.task", "payload": state["task"]},
         {"field": "state.collapsedClasses", "payload": False},
         {"field": "state.disabledClasses", "payload": False},
         {"field": "data.doneTask", "payload": True},

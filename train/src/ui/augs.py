@@ -99,8 +99,6 @@ def init(data, state):
 
 
 def restart(data, state):
-    state["collapsedAugs"] = False
-    state["disabledAugs"] = False
     data["doneAugs"] = False
 
 

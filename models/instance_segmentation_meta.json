@@ -57,7 +57,8 @@
     "model_name" : "Cascade Mask R-CNN",
     "yml_file" : "cascade_rcnn/metafile.yml",
     "paper_from": "CVPR",
-    "year": 2018
+    "year": 2018,
+    "exclude": "cascade_rcnn*"
   },
   {
     "model_name" : "Mask R-CNN",
