@@ -18,6 +18,7 @@ import sly_imgaugs
 import sly_dataset
 import sly_logger_hook
 import sly_semantic_head
+import sly_mse_loss
 
 _open_lnk_name = "open_app.lnk"
 

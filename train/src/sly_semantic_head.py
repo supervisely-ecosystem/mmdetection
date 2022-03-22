@@ -4,8 +4,6 @@ from mmcv.runner import auto_fp16, force_fp32
 from mmdet.models.utils import ResLayer, SimplifiedBasicBlock
 from mmdet.models.roi_heads.mask_heads.fused_semantic_head import FusedSemanticHead
 from mmdet.models.builder import HEADS
-from mmdet.models.losses.smooth_l1_loss import SmoothL1Loss
-from mmdet.models.losses.cross_entropy_loss import CrossEntropyLoss
 
 
 @HEADS.register_module()

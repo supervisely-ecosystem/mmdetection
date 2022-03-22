@@ -282,8 +282,7 @@ def mask_to_image_size(label, existence_mask, img_size):
     mask_in_images_coordinates = np.zeros(img_size, dtype=bool)  # size is (h, w)
 
     row, column = label.geometry.origin.row, label.geometry.origin.col  # move mask to image space
-    mask_in_images_coordinates[row: row + existence_mask.shape[0], column: column + existence_mask.shape[1]] = \
-        existence_mask
+    mask_in_images_coordinates[row: row + existence_mask.shape[0], column: column + existence_mask.shape[1]] = existence_mask
 
     return mask_in_images_coordinates
 
@@ -308,18 +307,13 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
     obj_count = 0
     # TODO: add progress to UI
     for idx, item in enumerate(mmcv.track_iter_progress(items)):
-        # jpg !!!! SSUKA
         filename = osp.join(item.dataset_name, "img", item.name)
-        if filename.endswith("jpeg"):
-            old_filename = filename
-            filename = filename.replace('jpeg', 'jpg')
-            os.rename(osp.join(g.project_dir, old_filename), osp.join(g.project_dir, filename))
         ann_path = osp.join(g.project_dir, item.dataset_name, "ann", f"{item.name}.json")
         ann = sly.Annotation.load_json_file(ann_path, g.project_meta)
         height, width = ann.img_size[0], ann.img_size[1]
         seg_map = np.full(ann.img_size, 255, dtype=np.uint8) if architectures.cfg.with_semantic_masks else None
         if seg_map is not None:
-            seg_path = osp.join(g.my_app.data_dir, "seg", filename.replace('jpg', 'png'))
+            seg_path = osp.join(g.my_app.data_dir, "seg", f"{filename}.png")
             os.makedirs(os.path.dirname(seg_path), exist_ok=True)
         images.append(dict(
             id=idx,

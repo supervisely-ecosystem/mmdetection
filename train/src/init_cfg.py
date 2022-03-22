@@ -220,12 +220,12 @@ def init_model(cfg, classes, state):
             if hasattr(cfg.model.roi_head, "bbox_head") and not isinstance(cfg.model.roi_head.bbox_head, list):
                 cfg.model.roi_head.bbox_head.num_classes = len(classes)
                 if cfg.model.roi_head.bbox_head.loss_bbox["type"] == "SmoothL1Loss":
-                    cfg.model.roi_head.bbox_head.loss_bbox = ConfigDict(type="MSELoss", loss_weight=cfg.model.roi_head.bbox_head.loss_bbox["loss_weight"])
+                    cfg.model.roi_head.bbox_head.loss_bbox = ConfigDict(type="SlyMSELoss", loss_weight=cfg.model.roi_head.bbox_head.loss_bbox["loss_weight"])
             elif hasattr(cfg.model.roi_head, "bbox_head") and isinstance(cfg.model.roi_head.bbox_head, list):
                 for i in range(len(cfg.model.roi_head.bbox_head)):
                     cfg.model.roi_head.bbox_head[i].num_classes = len(classes)
                     if cfg.model.roi_head.bbox_head[i].loss_bbox["type"] == "SmoothL1Loss":
-                        cfg.model.roi_head.bbox_head[i].loss_bbox = ConfigDict(type="MSELoss", loss_weight=cfg.model.roi_head.bbox_head[i].loss_bbox["loss_weight"])
+                        cfg.model.roi_head.bbox_head[i].loss_bbox = ConfigDict(type="SlyMSELoss", loss_weight=cfg.model.roi_head.bbox_head[i].loss_bbox["loss_weight"])
             else:
                 raise ValueError("No bbox head in roi head")
                 
@@ -239,7 +239,7 @@ def init_model(cfg, classes, state):
 
         if hasattr(cfg.model, "rpn_head") and hasattr(cfg.model.rpn_head, "loss_bbox"):
             if cfg.model.rpn_head.loss_bbox["type"] == "SmoothL1Loss":
-                cfg.model.rpn_head.loss_bbox = ConfigDict(type="MSELoss", loss_weight=cfg.model.rpn_head.loss_bbox["loss_weight"])
+                cfg.model.rpn_head.loss_bbox = ConfigDict(type="SlyMSELoss", loss_weight=cfg.model.rpn_head.loss_bbox["loss_weight"])
 
     # modify num classes of the model in mask head
     if state["task"] == "instance_segmentation":
@@ -272,7 +272,7 @@ def init_model(cfg, classes, state):
 
             if hasattr(cfg.model.roi_head, "semantic_head"):
                 # TODO: check len classes in semantic head
-                cfg.model.roi_head.semantic_head.num_classes = len(classes) +1
+                cfg.model.roi_head.semantic_head.num_classes = len(classes) + 1
                 cfg.model.roi_head.semantic_head.type = 'SlyFusedSemanticHead'
 
         if hasattr(cfg.model, "segm_head"):
