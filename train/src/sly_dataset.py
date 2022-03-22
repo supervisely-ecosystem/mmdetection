@@ -8,10 +8,8 @@ import itertools
 from terminaltables import AsciiTable
 
 import mmcv
-from mmcv.runner.hooks.evaluation import EvalHook as mmcv_eval
-from mmdet.core.evaluation.eval_hooks import EvalHook as mmdet_eval
 from mmdet.datasets.coco import CocoDataset
-from mmdet.datasets.api_wrappers import COCO, COCOeval
+from mmdet.datasets.api_wrappers import COCOeval
 from mmdet.datasets.builder import DATASETS
 from mmcv.utils import print_log
 

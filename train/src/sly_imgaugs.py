@@ -2,7 +2,7 @@ import supervisely as sly
 from mmdet.datasets.builder import PIPELINES
 from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
 from imgaug.augmentables.segmaps import SegmentationMapsOnImage
-from mmdet.core.mask.structures import BitmapMasks, PolygonMasks
+from mmdet.core.mask.structures import BitmapMasks
 import numpy as np
 import datetime
 import cv2
@@ -39,20 +39,27 @@ class SlyImgAugs(object):
             bitmap_masks.append(instance_mask.astype(np.uint8))
         return np.stack(bitmap_masks)
         
-    def apply_to_image_bbox_and_mask(self, augs, img, bbox, masks):
+    def apply_to_image_bbox_and_mask(self, augs, img, bbox, masks, semantic=None):
         boxes = [BoundingBox(box[0], box[1], box[0] + box[2], box[1] + box[3]) for box in bbox]
         boxes = BoundingBoxesOnImage(boxes, shape=img.shape[:2])
         if isinstance(masks, BitmapMasks):
             np_masks = self.to_nonoverlapping_masks(masks.masks)
+            if semantic is not None:
+                # 3-dim image
+                np_masks = np.stack((np_masks, semantic, semantic), axis=-1)
+            else:
+                np_masks = np_masks[:,:,np.newaxis]
         else:
             raise NotImplementedError()
 
-        segmaps = SegmentationMapsOnImage(np_masks, shape=img.shape[:2])
+        segmaps = SegmentationMapsOnImage(np_masks, shape=np_masks.shape)
         res_img, res_boxes, res_segmaps = sly.imgaug_utils._apply(augs, img, boxes=boxes, masks=segmaps)
         np_masks = res_segmaps.get_arr()
 
+        if semantic is not None:
+            res_semantic = np_masks[:,:,2]
         if isinstance(masks, BitmapMasks):
-            np_masks = self.to_bitmap_masks(np_masks, len(masks.masks))
+            np_masks = self.to_bitmap_masks(np_masks[:,:,0], len(masks.masks))
         res_masks = BitmapMasks(np_masks, np_masks.shape[1], np_masks.shape[2])
         res_boxes = np.array([[res_box.x1, res_box.y1, res_box.x2 - res_box.x1, res_box.y2 - res_box.y1] for res_box in res_boxes], dtype=np.float32)
 
@@ -60,6 +67,8 @@ class SlyImgAugs(object):
             raise ValueError(f"Image and mask have different shapes "
                             f"({res_img.shape[:2]} != {res_masks.masks.shape[-2:]}) after augmentations. "
                             f"Please, contact tech support")
+        if semantic is not None:
+            return res_img, res_boxes, res_masks, res_semantic
         return res_img, res_boxes, res_masks
     
     def _apply_augs(self, results):
@@ -75,7 +84,11 @@ class SlyImgAugs(object):
 
         if "gt_masks" in results.keys():
             masks = results["gt_masks"]
-            res_img, res_boxes, res_masks = self.apply_to_image_bbox_and_mask(self.augs, img, boxes, masks)
+            if "gt_semantic_seg" in results.keys():
+                res_img, res_boxes, res_masks, res_semantic = self.apply_to_image_bbox_and_mask(self.augs, img, boxes, masks, results["gt_semantic_seg"])
+                results["gt_semantic_seg"] = res_semantic
+            else:
+                res_img, res_boxes, res_masks = self.apply_to_image_bbox_and_mask(self.augs, img, boxes, masks)
             results["gt_masks"] = res_masks
         else:
             res_img, res_boxes = self.apply_to_image_and_bbox(self.augs, img, boxes)

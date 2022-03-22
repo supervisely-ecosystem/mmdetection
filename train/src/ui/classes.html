@@ -4,7 +4,7 @@
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedClasses"
           :disabled="{disabled: state.disabledClasses, message: 'Select task at step 1 before selecting classes'}"
-          ref="step3"
+          ref="step4"
 >
     <el-table
             class="ultra-table"
@@ -69,7 +69,7 @@
         <span style="color: #5a6772;">{{state.ignoredItems}} / {{state.totalItems}} images will be ignored because of no needed labels.</span>
     </div>
     <el-button type="warning" class="regular mt10" :plain="true"
-               @click="state.restartFrom = 3;"
+               @click="state.restartFrom = 4;"
                v-if="data.doneClasses && state.selectedClasses.length > 0 && !state.started">
         <i class="zmdi zmdi-rotate-left mr5"></i> Select other classes
     </el-button>

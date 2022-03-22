@@ -180,8 +180,8 @@ def use_augs(api: sly.Api, task_id, context, state, app_logger):
 
     fields = [
         {"field": "data.doneAugs", "payload": True},
-        {"field": "state.collapsedModels", "payload": False},
-        {"field": "state.disabledModels", "payload": False},
-        {"field": "state.activeStep", "payload": 6},
+        {"field": "state.collapsedHyperparams", "payload": False},
+        {"field": "state.disabledHyperparams", "payload": False},
+        {"field": "state.activeStep", "payload": 7},
     ]
     g.api.app.set_fields(g.task_id, fields)

@@ -4,6 +4,7 @@ import splits
 import sly_globals as g
 from mmcv import ConfigDict
 from mmdet.apis import set_random_seed
+import os.path as osp
 
 def init_class_weights(state, classes):
     if state["useClassWeights"]:
@@ -85,6 +86,8 @@ def init_cfg_splits(cfg, classes, palette, task):
     train_dataset.img_prefix = ''
     train_dataset.test_mode = False
     train_dataset.classes = classes
+    if cfg.with_semantic_masks:
+        train_dataset.seg_prefix = osp.join(cfg.work_dir, "seg")
     if hasattr(train_dataset, "times"):
         delattr(train_dataset, "times")
     if hasattr(train_dataset, "dataset"):
@@ -96,6 +99,8 @@ def init_cfg_splits(cfg, classes, palette, task):
     val_dataset.img_prefix = ''
     val_dataset.test_mode = False
     val_dataset.classes = classes
+    if cfg.with_semantic_masks:
+        val_dataset.seg_prefix = osp.join(cfg.work_dir, "seg")
     # TODO: decside what to do with this
     # val_dataset.samples_per_gpu = 2
     
@@ -214,9 +219,13 @@ def init_model(cfg, classes, state):
         if hasattr(cfg.model, "roi_head"):
             if hasattr(cfg.model.roi_head, "bbox_head") and not isinstance(cfg.model.roi_head.bbox_head, list):
                 cfg.model.roi_head.bbox_head.num_classes = len(classes)
+                if cfg.model.roi_head.bbox_head.loss_bbox["type"] == "SmoothL1Loss":
+                    cfg.model.roi_head.bbox_head.loss_bbox = ConfigDict(type="MSELoss", loss_weight=cfg.model.roi_head.bbox_head.loss_bbox["loss_weight"])
             elif hasattr(cfg.model.roi_head, "bbox_head") and isinstance(cfg.model.roi_head.bbox_head, list):
                 for i in range(len(cfg.model.roi_head.bbox_head)):
                     cfg.model.roi_head.bbox_head[i].num_classes = len(classes)
+                    if cfg.model.roi_head.bbox_head[i].loss_bbox["type"] == "SmoothL1Loss":
+                        cfg.model.roi_head.bbox_head[i].loss_bbox = ConfigDict(type="MSELoss", loss_weight=cfg.model.roi_head.bbox_head[i].loss_bbox["loss_weight"])
             else:
                 raise ValueError("No bbox head in roi head")
                 
@@ -227,6 +236,10 @@ def init_model(cfg, classes, state):
                 cfg.model.bbox_head[i].num_classes = len(classes)
         else:
             raise ValueError("No bbox head.")
+
+        if hasattr(cfg.model, "rpn_head") and hasattr(cfg.model.rpn_head, "loss_bbox"):
+            if cfg.model.rpn_head.loss_bbox["type"] == "SmoothL1Loss":
+                cfg.model.rpn_head.loss_bbox = ConfigDict(type="MSELoss", loss_weight=cfg.model.rpn_head.loss_bbox["loss_weight"])
 
     # modify num classes of the model in mask head
     if state["task"] == "instance_segmentation":
@@ -256,6 +269,11 @@ def init_model(cfg, classes, state):
 
             if hasattr(cfg.model.roi_head, "mask_iou_head"):
                 cfg.model.roi_head.mask_iou_head.num_classes = len(classes)
+
+            if hasattr(cfg.model.roi_head, "semantic_head"):
+                # TODO: check len classes in semantic head
+                cfg.model.roi_head.semantic_head.num_classes = len(classes) +1
+                cfg.model.roi_head.semantic_head.type = 'SlyFusedSemanticHead'
 
         if hasattr(cfg.model, "segm_head"):
             cfg.model.segm_head.num_classes = len(classes)

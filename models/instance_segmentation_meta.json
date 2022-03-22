@@ -9,13 +9,15 @@
     "model_name" : "SCNet",
     "yml_file" : "scnet/metafile.yml",
     "paper_from": "AAAI",
-    "year": 2021
+    "year": 2021,
+    "semantic": "*"
   },
   {
     "model_name" : "DetectoRS",
     "yml_file" : "detectors/metafile.yml",
     "paper_from": "ArXiv",
-    "year": 2020
+    "year": 2020,
+    "semantic": "*htc*"
   },
   {
     "model_name" : "PointRend",
@@ -45,7 +47,8 @@
     "model_name" : "Hybrid Task Cascade",
     "yml_file" : "htc/metafile.yml",
     "paper_from": "CVPR",
-    "year": 2019
+    "year": 2019,
+    "semantic": "!htc_without*"
   },
   {
     "model_name" : "Mask Scoring R-CNN",

@@ -1,4 +1,3 @@
-from binascii import rlecode_hqx
 import supervisely as sly
 import sly_globals as g
 import os
@@ -6,8 +5,12 @@ import os.path as osp
 import random
 import numpy as np
 import mmcv
+import cv2
 from itertools import groupby
 from collections import namedtuple
+import architectures
+from mmdet.datasets.pipelines.transforms import Pad
+from mmdet.models.roi_heads.mask_heads.fused_semantic_head import FusedSemanticHead
 
 ItemInfo = namedtuple('ItemInfo', ['dataset_name', 'name', 'img_path', 'ann_path'])
 train_set = None
@@ -28,11 +31,10 @@ def init(project_info, project_meta: sly.ProjectMeta, data, state):
 
     train_percent = 80
     train_count = int(project_info.items_count / 100 * train_percent)
-    # RITM model requires to contain minimum 2 samples in batch
-    if train_count < 2:
-        train_count = 2
-    elif project_info.items_count - train_count < 2:
-        train_count = project_info.items_count - 2
+    if train_count < 1:
+        train_count = 1
+    elif project_info.items_count - train_count < 1:
+        train_count = project_info.items_count - 1
     state["randomSplit"] = {
         "count": {
             "total": project_info.items_count,
@@ -81,11 +83,10 @@ def refresh_table():
     total_items_count = g.project_fs.total_items - ignored_items_count
     train_percent = 80
     train_count = int(total_items_count / 100 * train_percent)
-    # RITM model requires to contain minimum 2 samples in batch
-    if train_count < 2:
-        train_count = 2
-    elif g.project_info.items_count - train_count < 2:
-        train_count = g.project_info.items_count - 2
+    if train_count < 1:
+        train_count = 1
+    elif g.project_info.items_count - train_count < 1:
+        train_count = g.project_info.items_count - 1
     random_split_tab = {
         "count": {
             "total": total_items_count,
@@ -223,11 +224,11 @@ def get_train_val_sets(state):
 def verify_train_val_sets(train_set, val_set):
     if len(train_set) == 0:
         raise ValueError("Train set is empty, check or change split configuration")
-    elif len(train_set) < 2:
+    elif len(train_set) < 1:
         raise ValueError("Train set is not big enough, min size is 1.")
     if len(val_set) == 0:
         raise ValueError("Val set is empty, check or change split configuration")
-    elif len(val_set) < 2:
+    elif len(val_set) < 1:
         raise ValueError("Val set is not big enough, min size is 1.")
 
 
@@ -266,7 +267,7 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             fields.extend([
                 {"field": "state.collapsedAugs", "payload": False},
                 {"field": "state.disabledAugs", "payload": False},
-                {"field": "state.activeStep", "payload": 5},
+                {"field": "state.activeStep", "payload": 6},
             ])
         g.api.app.set_fields(g.task_id, fields)
     if train_set is not None:
@@ -307,11 +308,19 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
     obj_count = 0
     # TODO: add progress to UI
     for idx, item in enumerate(mmcv.track_iter_progress(items)):
+        # jpg !!!! SSUKA
         filename = osp.join(item.dataset_name, "img", item.name)
+        if filename.endswith("jpeg"):
+            old_filename = filename
+            filename = filename.replace('jpeg', 'jpg')
+            os.rename(osp.join(g.project_dir, old_filename), osp.join(g.project_dir, filename))
         ann_path = osp.join(g.project_dir, item.dataset_name, "ann", f"{item.name}.json")
         ann = sly.Annotation.load_json_file(ann_path, g.project_meta)
         height, width = ann.img_size[0], ann.img_size[1]
-
+        seg_map = np.full(ann.img_size, 255, dtype=np.uint8) if architectures.cfg.with_semantic_masks else None
+        if seg_map is not None:
+            seg_path = osp.join(g.my_app.data_dir, "seg", filename.replace('jpg', 'png'))
+            os.makedirs(os.path.dirname(seg_path), exist_ok=True)
         images.append(dict(
             id=idx,
             file_name=filename,
@@ -325,23 +334,32 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
                 id=obj_count,
                 category_id=cat2label[label.obj_class.name],
                 bbox=[rect.left, rect.top, rect.width, rect.height],
-                area=rect.width * rect.height, # TODO: maybe calculate mask area?
                 iscrowd=0)
             
-            # TODO: check that polygons work in practice
-            if isinstance(label.geometry, sly.Polygon) and task == "instance_segmentation":
-                label_render = np.zeros(ann.img_size, dtype=np.uint8)
-                label.geometry._draw_impl(label_render, 1)
-                rle_seg_mask = binary_mask_to_rle(label_render.astype(np.bool))
+            if task == "detection":
+                data_anno["area"] = rect.height * rect.width
+            elif task == "instance_segmentation":
+                # TODO: check that polygons work in practice
+                if isinstance(label.geometry, sly.Polygon):
+                    label_render = np.zeros(ann.img_size, dtype=np.uint8)
+                    label.geometry._draw_impl(label_render, 1)
+                    binary_mask = label_render.astype(np.bool)
+                elif isinstance(label.geometry, sly.Bitmap):
+                    seg_mask = np.asarray(label.geometry.convert(sly.Bitmap)[0].data)
+                    binary_mask = mask_to_image_size(label, seg_mask, ann.img_size)
+                
+                if architectures.cfg.with_semantic_masks:
+                    seg_map[binary_mask] = cat2label[label.obj_class.name]
+                rle_seg_mask = binary_mask_to_rle(binary_mask)
+                mask_area = sum(rle_seg_mask["counts"][1::2])
                 data_anno["segmentation"] = rle_seg_mask
-            elif isinstance(label.geometry, sly.Bitmap) and task == "instance_segmentation":
-                seg_mask = np.asarray(label.geometry.convert(sly.Bitmap)[0].data)
-                seg_mask_in_image_coords = mask_to_image_size(label, seg_mask, ann.img_size)
-                rle_seg_mask = binary_mask_to_rle(seg_mask_in_image_coords)
-                data_anno["segmentation"] = rle_seg_mask
-            
+                data_anno["area"] = mask_area
+
             annotations.append(data_anno)
             obj_count += 1
+        if seg_map is not None:
+            assert seg_path is not None
+            cv2.imwrite(seg_path, seg_map)
 
     coco_format_json = dict(
         images=images,

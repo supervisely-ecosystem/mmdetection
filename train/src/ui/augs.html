@@ -3,7 +3,7 @@
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedAugs"
           :disabled="{disabled: state.disabledAugs, message: 'Prepare train/val splits at previous step before choosing augmentations'}"
-          ref="step5"
+          ref="step6"
 >
     <div class="fflex">
         <el-switch v-model="state.useAugs" :disabled="data.doneAugs"></el-switch>
@@ -117,7 +117,7 @@
         </div>
     </div>
     <el-button type="warning" class="regular mt10" :plain="true"
-               @click="state.restartFrom = 5;"
+               @click="state.restartFrom = 6;"
                v-if="data.doneAugs && !state.started">
         <i class="zmdi zmdi-rotate-left mr5"></i> Change augmentations
     </el-button>

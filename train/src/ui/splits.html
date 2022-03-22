@@ -3,7 +3,7 @@
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedSplits"
           :disabled="{disabled: state.disabledSplits, message: 'Select classes at step 2 before choosing train/val splits.'}"
-          ref="step4"
+          ref="step5"
 >
     <el-tabs type="border-card" class="el-tabs-cards" v-model="state.splitMethod">
         <el-tab-pane name="random" :disabled="data.doneSplits">
@@ -165,7 +165,7 @@
             </span>
         </div>
         <el-button type="warning" class="regular mt10" :plain="true"
-                @click="state.restartFrom = 4;"
+                @click="state.restartFrom = 5;"
                 v-if="data.doneSplits && !state.started">
             <i class="zmdi zmdi-rotate-left mr5"></i> Recreate splits
         </el-button>

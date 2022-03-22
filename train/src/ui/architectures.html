@@ -3,7 +3,7 @@
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedModels"
           :disabled="{disabled: state.disabledModels, message: 'Finish previous steps before choosing NN architecture'}"
-          ref="step6"
+          ref="step3"
 >
 
     <el-tabs type="border-card" class="el-tabs-cards mb10" v-model="state.weightsInitialization">
@@ -93,7 +93,7 @@
         <span v-else style="color: #5a6772;">Custom model has been successfully defined</span>
     </div>
     <el-button type="warning" class="regular mt10" :plain="true"
-               @click="state.restartFrom = 6;"
+               @click="state.restartFrom = 3;"
                v-if="data.doneModels && !state.started">
         <i class="zmdi zmdi-rotate-left mr5"></i> Select another model
     </el-button>

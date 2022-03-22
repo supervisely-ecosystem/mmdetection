@@ -22,8 +22,8 @@ def select_task(api: sly.Api, task_id, context, state, app_logger):
     # TODO: add loading text while update architectures is performing
     architectures.reload_task(state["task"])
     fields = [
-        {"field": "state.collapsedClasses", "payload": False},
-        {"field": "state.disabledClasses", "payload": False},
+        {"field": "state.collapsedModels", "payload": False},
+        {"field": "state.disabledModels", "payload": False},
         {"field": "data.doneTask", "payload": True},
         {"field": "state.activeStep", "payload": 3},
     ]

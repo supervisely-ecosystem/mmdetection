@@ -94,6 +94,19 @@ def get_pretrained_models(task="detection", return_metrics=False):
                     if model_meta["exclude"].endswith("*"):
                         if model["Name"].startswith(model_meta["exclude"][:-1]):
                             continue
+                checkpoint_info["semantic"] = False
+                if "semantic" in model_meta.keys():
+                    if model_meta["semantic"] == "*":
+                        checkpoint_info["semantic"] = True
+                    elif model_meta["semantic"].startswith("*") and model_meta["semantic"].endswith("*"):
+                        if model_meta["semantic"][1:-1] in model["Name"]:
+                            checkpoint_info["semantic"] = True
+                    elif model_meta["semantic"].startswith("*") and model["Name"].endswith(model_meta["semantic"][1:]):
+                        checkpoint_info["semantic"] = True
+                    elif model_meta["semantic"].endswith("*") and model_meta["semantic"].startswith("!"):
+                        if not model["Name"].startswith(model_meta["semantic"][1:-1]):
+                            checkpoint_info["semantic"] = True
+                    
                 checkpoint_info["name"] = model["Name"]
                 try:
                     checkpoint_info["inference_time"] = model["Metadata"]["inference time (ms/im)"][0]["value"]
@@ -166,11 +179,12 @@ def download_custom_config(state):
                                            min_report_percent=5)
 
     weights_remote_dir = os.path.dirname(state["weightsPath"])
-    g.model_config_local_path = os.path.join(g.checkpoints_dir, g.my_app.data_dir.split('/')[-1], 'custom_loaded_config.py')
+    model_config_local_path = os.path.join(g.checkpoints_dir, g.my_app.data_dir.split('/')[-1], 'custom_loaded_config.py')
 
     config_remote_dir = os.path.join(weights_remote_dir, f'config.py')
     if g.api.file.exists(g.team_id, config_remote_dir):
-        download_sly_file(config_remote_dir, g.model_config_local_path, progress)
+        download_sly_file(config_remote_dir, model_config_local_path, progress)
+    return model_config_local_path
 
 
 @g.my_app.callback("download_weights")
@@ -179,6 +193,8 @@ def download_custom_config(state):
 def download_weights(api: sly.Api, task_id, context, state, app_logger):
     progress = sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
                                            min_report_percent=5)
+    with_semantic_masks = False
+    model_config_local_path = None
     try:
         if state["weightsInitialization"] == "custom":
             # raise NotImplementedError
@@ -192,7 +208,7 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
                 os.remove(g.local_weights_path)
 
             download_sly_file(weights_path_remote, g.local_weights_path, progress)
-            download_custom_config(state)
+            model_config_local_path = download_custom_config(state)
 
         else:
             checkpoints_by_model = get_pretrained_models(state["task"])[state["pretrainedModel"]]["checkpoints"]
@@ -201,9 +217,10 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
 
             weights_url = selected_model.get('weights')
             config_file = selected_model.get('config_file')
+            with_semantic_masks = selected_model.get('semantic')
             if weights_url is not None:
                 g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))
-                g.model_config_local_path = os.path.join(g.root_source_dir, config_file)
+                model_config_local_path = os.path.join(g.root_source_dir, config_file)
                 # TODO: check that pretrained weights are exist on remote server
                 if sly.fs.file_exists(g.local_weights_path) is False:
                     response = requests.head(weights_url, allow_redirects=True)
@@ -224,16 +241,20 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     fields = [
         {"field": "state.loadingModel", "payload": False},
         {"field": "data.doneModels", "payload": True},
-        {"field": "state.collapsedHyperparams", "payload": False},
-        {"field": "state.disabledHyperparams", "payload": False},
-        {"field": "state.activeStep", "payload": 7},
+        {"field": "state.collapsedClasses", "payload": False},
+        {"field": "state.disabledClasses", "payload": False},
+        {"field": "state.activeStep", "payload": 4},
     ]
 
     global cfg
-    cfg = Config.fromfile(g.model_config_local_path)
+    if model_config_local_path is None:
+        raise ValueError("Model config file not found!")
+    cfg = Config.fromfile(model_config_local_path)
     if state["weightsInitialization"] != "custom":
         cfg.pretrained_model = state["pretrainedModel"]
-    print(f'Initial config:\n{cfg.pretty_text}')
+        cfg.with_semantic_masks = with_semantic_masks
+
+    print(f'Initial config:\n{cfg.pretty_text}') # TODO: debug
     params = init_dc.rewrite_default_cfg_args(cfg, state)
     fields.extend(params)
 

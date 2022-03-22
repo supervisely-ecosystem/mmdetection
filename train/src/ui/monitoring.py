@@ -17,6 +17,7 @@ import json
 import sly_imgaugs
 import sly_dataset
 import sly_logger_hook
+import sly_semantic_head
 
 _open_lnk_name = "open_app.lnk"
 
@@ -147,8 +148,6 @@ def init_class_charts_series(state):
 def train(api: sly.Api, task_id, context, state, app_logger):
     init_class_charts_series(state)
 
-    
-
     try:
         sly.json.dump_json_file(state, os.path.join(g.info_dir, "ui_state.json"))
         
@@ -160,9 +159,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         os.makedirs(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1]), exist_ok=True)
         cfg.dump(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1], "config.py"))
         
-        # We can initialize the logger for training and have a look
-        # at the final config used for training
-        print(f'Ready config:\n{cfg.pretty_text}')
+        print(f'Ready config:\n{cfg.pretty_text}') # TODO: debug
 
         # Build the dataset
         datasets = [build_dataset(cfg.data.train)]
@@ -175,7 +172,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         model = revert_sync_batchnorm(model)
         train_detector(model, datasets, cfg, distributed=False, validate=True)
 
-        # debug inference
+        # TODO: debug inference
         with open(splits.val_set_path, 'r') as set_file:
             sample = json.load(set_file)["images"][0]["file_name"]
         inference_image_path = os.path.join(g.project_dir, sample)

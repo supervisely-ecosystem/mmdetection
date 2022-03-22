@@ -40,27 +40,27 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
 
     if restart_from_step <= 3:
         if restart_from_step == 3:
+            architectures.restart(data, state)
+        else:
+            architectures.init(data, state)
+
+    if restart_from_step <= 4:
+        if restart_from_step == 4:
             classes.restart(data, state)
         else:
             classes.init(g.api, data, state, g.project_id, g.project_meta)
     
-    if restart_from_step <= 4:
-        if restart_from_step == 4:
+    if restart_from_step <= 5:
+        if restart_from_step == 5:
             splits.restart(data, state)
         else:
             splits.init(g.project_info, g.project_meta, data, state)
     
-    if restart_from_step <= 5:
-        if restart_from_step == 5:
+    if restart_from_step <= 6:
+        if restart_from_step == 6:
             augs.restart(data, state)
         else:
             augs.init(data, state)
-    
-    if restart_from_step <= 6:
-        if restart_from_step == 6:
-            architectures.restart(data, state)
-        else:
-            architectures.init(data, state)
     
     if restart_from_step <= 7:
         if restart_from_step == 7:

@@ -6,14 +6,14 @@ def init_default_cfg_args(state):
     state["optimizer"] = "SGD"
     state["lr"] = 0.001
     state["weightDecay"] = 0
-    state["gradClipEnabled"] = False
+    state["gradClipEnabled"] = True
     state["maxNorm"] = 1
     state["lrPolicy"] = "Cyclic"
     state["availableLrPolicy"] = ["Fixed", "Step", "Exp", "Poly", "Inv", "CosineAnnealing", "FlatCosineAnnealing",
                                  "CosineRestart", "Cyclic", "OneCycle"]
     state["lr_step"] = ""
     state["useWarmup"] = False
-    state["warmup"] = "constant"
+    state["warmup"] = None
     state["warmupIters"] = 0
     state["warmupRatio"] = 0.1
     state["schedulerByEpochs"] = False
@@ -130,6 +130,7 @@ def rewrite_default_cfg_args(cfg, state):
     # take lr scheduler params
     if hasattr(cfg, "lr_config"):
         # warmup
+        '''
         if hasattr(cfg.lr_config, "warmup"):
             params.extend([{
                 "field": "state.useWarmup",
@@ -154,7 +155,7 @@ def rewrite_default_cfg_args(cfg, state):
                 "field": "state.warmupByEpochs",
                 "payload": cfg.lr_config.warmup_by_epoch
             }])
-
+        '''
         # policy
         if hasattr(cfg.lr_config, "policy"):
             policy = cfg.lr_config.policy.capitalize()
