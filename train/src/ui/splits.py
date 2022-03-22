@@ -322,6 +322,8 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
             width=width))
 
         for label in ann.labels:
+            if label.obj_class.name not in selected_classes:
+                continue
             rect: sly.Rectangle = label.geometry.to_bbox()
             data_anno = dict(
                 image_id=idx,
@@ -352,7 +354,6 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
             annotations.append(data_anno)
             obj_count += 1
         if seg_map is not None:
-            assert seg_path is not None
             cv2.imwrite(seg_path, seg_map)
 
     coco_format_json = dict(

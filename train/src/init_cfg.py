@@ -271,7 +271,6 @@ def init_model(cfg, classes, state):
                 cfg.model.roi_head.mask_iou_head.num_classes = len(classes)
 
             if hasattr(cfg.model.roi_head, "semantic_head"):
-                # TODO: check len classes in semantic head
                 cfg.model.roi_head.semantic_head.num_classes = len(classes) + 1
                 cfg.model.roi_head.semantic_head.type = 'SlyFusedSemanticHead'
 

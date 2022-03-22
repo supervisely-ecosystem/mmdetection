@@ -197,7 +197,6 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     model_config_local_path = None
     try:
         if state["weightsInitialization"] == "custom":
-            # raise NotImplementedError
             weights_path_remote = state["weightsPath"]
             if not weights_path_remote.endswith(".pth"):
                 raise ValueError(f"Weights file has unsupported extension {sly.fs.get_file_ext(weights_path_remote)}. "
@@ -254,7 +253,7 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
         cfg.pretrained_model = state["pretrainedModel"]
         cfg.with_semantic_masks = with_semantic_masks
 
-    print(f'Initial config:\n{cfg.pretty_text}') # TODO: debug
+    # print(f'Initial config:\n{cfg.pretty_text}') # TODO: debug
     params = init_dc.rewrite_default_cfg_args(cfg, state)
     fields.extend(params)
 

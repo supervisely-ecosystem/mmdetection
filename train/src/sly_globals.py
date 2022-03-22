@@ -21,8 +21,8 @@ sly.logger.info(f"Added to sys.path: {ui_sources_dir}")
 debug_env_path = os.path.join(root_source_dir, "train", "debug.env")
 secret_debug_env_path = os.path.join(root_source_dir, "train", "secret_debug.env")
 # @TODO: for debug
-load_dotenv(debug_env_path)
-load_dotenv(secret_debug_env_path, override=True)
+# load_dotenv(debug_env_path)
+# load_dotenv(secret_debug_env_path, override=True)
 
 my_app = sly.AppService()
 api = my_app.public_api
@@ -34,7 +34,7 @@ project_id = int(os.environ['modal.state.slyProjectId'])
 project_info = api.project.get_info_by_id(project_id)
 
 # @TODO: for debug
-sly.fs.clean_dir(my_app.data_dir)  
+# sly.fs.clean_dir(my_app.data_dir)  
 
 project_dir = os.path.join(my_app.data_dir, "sly_project")
 project_meta = sly.ProjectMeta.from_json(api.project.get_meta(project_id))

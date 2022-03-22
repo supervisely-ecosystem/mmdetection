@@ -2,16 +2,16 @@ import supervisely as sly
 from sly_train_progress import init_progress, _update_progress_ui
 import sly_globals as g
 import os
-import cv2
 from functools import partial
-import mmcv
 from mmcv.cnn.utils import revert_sync_batchnorm
-from mmdet.apis import train_detector, inference_detector, show_result_pyplot
+from mmdet.apis import train_detector #, inference_detector, show_result_pyplot
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 from init_cfg import init_cfg
-import splits
-import json
+# import mmcv
+# import cv2
+# import splits
+# import json
 
 # ! required to be left here despite not being used
 import sly_imgaugs
@@ -160,7 +160,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         os.makedirs(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1]), exist_ok=True)
         cfg.dump(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1], "config.py"))
         
-        print(f'Ready config:\n{cfg.pretty_text}') # TODO: debug
+        # print(f'Ready config:\n{cfg.pretty_text}') # TODO: debug
 
         # Build the dataset
         datasets = [build_dataset(cfg.data.train)]
@@ -174,7 +174,8 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         train_detector(model, datasets, cfg, distributed=False, validate=True)
 
         # TODO: debug inference
-        with open(splits.val_set_path, 'r') as set_file:
+        '''
+        with open(splits.val_set_path, "r") as set_file:
             sample = json.load(set_file)["images"][0]["file_name"]
         inference_image_path = os.path.join(g.project_dir, sample)
         img = mmcv.imread(inference_image_path)
@@ -182,7 +183,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         result = inference_detector(model, img)
         img = show_result_pyplot(model, img, result)
         cv2.imwrite("/tmp/mmdetection/tmp_seg.png", img)
-
+        '''
         # hide progress bars and eta
         fields = [
             {"field": "data.progressEpoch", "payload": None},
