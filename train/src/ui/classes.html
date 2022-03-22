@@ -2,16 +2,16 @@
           subtitle="Select classes, that should be used for training. Training supports only classes of shapes Polygon
                     and Bitmap. Other classes are ignored"
           :options="{collapsable: true}"
-          :collapsed.sync="state.collapsed3"
-          :disabled="{disabled: state.disabled3, message: 'Prepare train/val splits at step 2 before selection classes'}"
-          ref="step3"
+          :collapsed.sync="state.collapsedClasses"
+          :disabled="{disabled: state.disabledClasses, message: 'Select task at step 1 before selecting classes'}"
+          ref="step4"
 >
     <el-table
             class="ultra-table"
             :data="data.classes"
             style="width: 100%"
             max-height="500"
-            :disabled="data.done3"
+            :disabled="data.doneClasses"
             @selection-change="
                 (val) => {
                     state.selectedClasses = val.map(x => x.title);
@@ -30,6 +30,7 @@
         <el-table-column prop="objectsCount" label="Objects count" sortable width="180"></el-table-column>
         <el-table-column prop="areaPercent" label="Area percent" sortable width="150"></el-table-column>
     </el-table>
+    <!--
     <sly-field title="INFO: Background Class"
 			   description="background class (name: __bg__, color: [0, 0, 0]) will be added automatically"
 			   style="padding-top: 0; padding-bottom: 0; margin: 10px 5px;">
@@ -38,20 +39,38 @@
 			<i class="zmdi zmdi-info"></i>
 		</sly-icon>
 	</sly-field>
+    -->
 
+    <sly-field v-if="!data.doneClasses" title="INFO: Missed labels"
+			   description="Images without labels of selected classes will be skipped automatically."
+			   style="padding-top: 0; padding-bottom: 0; margin: 10px 5px;">
+
+		<sly-icon slot="icon" :options="{ color: '#b8ac05', bgColor: '#fffbca', rounded: false }">
+			<i class="zmdi zmdi-info"></i>
+		</sly-icon>
+	</sly-field>
+
+    <div v-if="state.findingItemsToIgnore">
+        <span style="color: #5a6772;">Filtering project data...</span>
+    </div>
     <el-button type="primary" class="regular mt10"
                @click="command('use_classes')"
                :disabled="state.selectedClasses.length < 1"
-               v-if="!data.done3">
+               :loading="state.findingItemsToIgnore"
+               v-if="!data.doneClasses">
         Use {{state.selectedClasses.length}} selected classes
     </el-button>
-    <div v-if="data.done3">
+    <div v-if="data.doneClasses">
         <i class="zmdi zmdi-check-circle ml5 mr5 mt10" style="color: #13ce66"></i>
-        <span style="color: #5a6772;">Selected {{state.selectedClasses.length}} classes</span>
+        <span style="color: #5a6772;">Selected {{state.selectedClasses.length}} classes.</span>
+    </div>
+    <div v-if="data.doneClasses && state.ignoredItems > 0">
+        <i class="zmdi zmdi-info ml5 mr5 mt10" style="color: #b8ac05"></i>
+        <span style="color: #5a6772;">{{state.ignoredItems}} / {{state.totalItems}} images will be ignored because of no needed labels.</span>
     </div>
     <el-button type="warning" class="regular mt10" :plain="true"
-               @click="state.restartFrom = 3;"
-               v-if="data.done3 && state.selectedClasses.length > 0 && !state.started">
+               @click="state.restartFrom = 4;"
+               v-if="data.doneClasses && state.selectedClasses.length > 0 && !state.started">
         <i class="zmdi zmdi-rotate-left mr5"></i> Select other classes
     </el-button>
 </sly-card>

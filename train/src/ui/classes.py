@@ -1,10 +1,8 @@
-import os
+import splits
 import supervisely_lib as sly
 import sly_globals as g
 
-
 selected_classes = None
-
 
 def init(api: sly.Api, data, state, project_id, project_meta: sly.ProjectMeta):
     stats = api.project.get_stats(project_id)
@@ -40,10 +38,25 @@ def init(api: sly.Api, data, state, project_id, project_meta: sly.ProjectMeta):
     state["selectedClasses"] = []
     state["classes"] = len(semantic_classes_json) * [True]
     data["unlabeledCount"] = unlabeled_count
+    state["ignoredItems"] = 0
+    state["totalItems"] = g.project_info.items_count
 
-    data["done3"] = False
-    state["collapsed3"] = True
-    state["disabled3"] = True
+    state["findingItemsToIgnore"] = False
+    data["doneClasses"] = False
+    state["collapsedClasses"] = True
+    state["disabledClasses"] = True
+
+
+def get_items_to_ignore(selected_classes):
+    items_to_ignore = {}
+    for dataset in g.api.dataset.get_list(g.project_id):
+        items_to_ignore[dataset.name] = []
+        for ann_info in g.api.annotation.get_list(dataset.id):
+            ann_objects = ann_info.annotation["objects"]
+            labels_to_include = [label for label in ann_objects if label["classTitle"] in selected_classes]
+            if len(labels_to_include) == 0:
+                items_to_ignore[dataset.name].append(ann_info.image_name)
+    return items_to_ignore
 
 
 @g.my_app.callback("use_classes")
@@ -52,15 +65,29 @@ def init(api: sly.Api, data, state, project_id, project_meta: sly.ProjectMeta):
 def use_classes(api: sly.Api, task_id, context, state, app_logger):
     global selected_classes
     selected_classes = state["selectedClasses"]
+
+    sly.logger.info(f"Project data: {g.project_fs.total_items} images")
+    g.api.app.set_field(g.task_id, "state.findingItemsToIgnore", True)
+    
+    splits.items_to_ignore = get_items_to_ignore(state["selectedClasses"])
+    ignored_items_count = sum([len(ds_items) for ds_items in splits.items_to_ignore.values()])
+    
+    sly.logger.info(f"{ignored_items_count} images without selected labels ignored.")
+    sly.logger.info(f"{g.project_fs.total_items - ignored_items_count} / {g.project_fs.total_items} images will be included to training.")
+
+    splits.refresh_table()
+
     fields = [
         {"field": "state.selectedClasses", "payload": state["selectedClasses"]},
-        {"field": "data.done3", "payload": True},
-        {"field": "state.collapsed4", "payload": False},
-        {"field": "state.disabled4", "payload": False},
-        {"field": "state.activeStep", "payload": 4},
+        {"field": "state.ignoredItems", "payload": ignored_items_count},
+        {"field": "state.findingItemsToIgnore", "payload": False},
+        {"field": "data.doneClasses", "payload": True},
+        {"field": "state.collapsedSplits", "payload": False},
+        {"field": "state.disabledSplits", "payload": False},
+        {"field": "state.activeStep", "payload": 5},
     ]
     g.api.app.set_fields(g.task_id, fields)
 
 
 def restart(data, state):
-    data["done3"] = False
+    data["doneClasses"] = False

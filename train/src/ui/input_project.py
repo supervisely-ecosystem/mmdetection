@@ -9,7 +9,6 @@ progress_index = 1
 _images_infos = None # dataset_name -> image_name -> image_info
 _cache_base_filename = os.path.join(g.my_app.data_dir, "images_info")
 _cache_path = _cache_base_filename + ".db"
-project_fs: sly.Project = None
 _image_id_to_paths = {}
 
 
@@ -19,8 +18,8 @@ def init(data, state):
     data["projectImagesCount"] = g.project_info.items_count
     data["projectPreviewUrl"] = g.api.image.preview_url(g.project_info.reference_image_url, 100, 100)
     init_progress(progress_index, data)
-    data["done1"] = False
-    state["collapsed1"] = False
+    data["doneProject"] = False
+    state["collapsedProject"] = False
 
 
 @g.my_app.callback("download_project")
@@ -38,23 +37,22 @@ def download(api: sly.Api, task_id, context, state, app_logger):
                                  only_image_tags=False, save_image_info=True)
             reset_progress(progress_index)
 
-        global project_fs
-        project_fs = sly.Project(g.project_dir, sly.OpenMode.READ)
+        g.project_fs = sly.Project(g.project_dir, sly.OpenMode.READ)
     except Exception as e:
         reset_progress(progress_index)
         raise e
 
     fields = [
-        {"field": "data.done1", "payload": True},
-        {"field": "state.collapsed2", "payload": False},
-        {"field": "state.disabled2", "payload": False},
+        {"field": "data.doneProject", "payload": True},
+        {"field": "state.collapsedTask", "payload": False},
+        {"field": "state.disabledTask", "payload": False},
         {"field": "state.activeStep", "payload": 2},
     ]
     g.api.app.set_fields(g.task_id, fields)
 
 
 def get_image_info_from_cache(dataset_name, item_name):
-    dataset_fs = project_fs.datasets.get(dataset_name)
+    dataset_fs = g.project_fs.datasets.get(dataset_name)
     img_info_path = dataset_fs.get_img_info_path(item_name)
     image_info_dict = sly.json.load_json_file(img_info_path)
     ImageInfo = namedtuple('ImageInfo', image_info_dict)
@@ -71,10 +69,9 @@ def get_paths_by_image_id(image_id):
 
 
 def get_random_item():
-    global project_fs
-    all_ds_names = project_fs.datasets.keys()
+    all_ds_names = g.project_fs.datasets.keys()
     ds_name = random.choice(all_ds_names)
-    ds = project_fs.datasets.get(ds_name)
+    ds = g.project_fs.datasets.get(ds_name)
     items = list(ds)
     item_name = random.choice(items)
     return ds_name, item_name

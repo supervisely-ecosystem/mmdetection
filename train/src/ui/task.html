@@ -1,0 +1,27 @@
+<sly-card title="Task"
+          subtitle="Select task from the list below"
+          :options="{collapsable: true}"
+          :collapsed.sync="state.collapsedTask"
+          :disabled="{disabled: state.disabledTask, message: 'Download data at step 1 before selecting classes.'}"
+          ref="step2"
+>
+    <sly-field title="MMDetection task">
+        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">detection</el-radio></div>
+        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">instance segmentation</el-radio></div>
+    </sly-field>
+
+    <el-button
+            type="primary"
+            class="mt10 regular"
+            :loading="state.splitInProgress"
+            v-if="!data.doneTask"
+            @click="command('select_task')">
+        Select task
+    </el-button>
+
+    <el-button type="warning" class="regular mt10" :plain="true"
+               @click="state.restartFrom = 2;"
+               v-if="data.doneTask && !state.started">
+        <i class="zmdi zmdi-rotate-left mr5"></i> Reselect task
+    </el-button>
+</sly-card>
