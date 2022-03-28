@@ -86,6 +86,7 @@ def init_cfg_splits(cfg, classes, palette, task):
     train_dataset.img_prefix = ''
     train_dataset.test_mode = False
     train_dataset.classes = classes
+    train_dataset.filter_empty_gt = True
     if cfg.with_semantic_masks:
         train_dataset.seg_prefix = osp.join(cfg.work_dir, "seg")
     if hasattr(train_dataset, "times"):
@@ -99,6 +100,7 @@ def init_cfg_splits(cfg, classes, palette, task):
     val_dataset.img_prefix = ''
     val_dataset.test_mode = False
     val_dataset.classes = classes
+    val_dataset.filter_empty_gt = True
     if cfg.with_semantic_masks:
         val_dataset.seg_prefix = osp.join(cfg.work_dir, "seg")
     # TODO: decside what to do with this

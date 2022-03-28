@@ -78,6 +78,8 @@ class SlyImgAugs(object):
 
         img = results["img"]
         boxes = results["gt_bboxes"]
+        if len(results["gt_bboxes"]) == 0:
+            return
         float32 = False
         if img.dtype == np.float32:
             float32 = True

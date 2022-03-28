@@ -1,14 +1,20 @@
 import errno
 import os
-import requests
+import sys
 import yaml
 import pkg_resources
 import sly_globals as g
 import supervisely_lib as sly
 from mmcv import Config
-import init_default_cfg as init_dc
+from mmcv.cnn.utils import revert_sync_batchnorm
+from mmdet.models import build_detector
+from mmcv.runner import load_checkpoint
+from mmdet.datasets import *
 
-cfg = None
+
+def str_to_class(classname):
+    return getattr(sys.modules[__name__], classname)
+
 
 def reload_task(task):
     if task == "detection":
@@ -39,11 +45,12 @@ def reload_task(task):
         {'field': 'data.modelColumns', 'payload': modelColumns},
         {'field': 'state.selectedModel', 'payload': selectedModel}
     ]
-    g.api.app.set_fields(g.task_id, fields)
+    g.api.app.set_fields(g.TASK_ID, fields)
 
 
 def init(data, state):
     state['pretrainedModel'] = 'TOOD'
+    sly.logger.info("Reading model data from configs...")
     data["pretrainedModels"], metrics = get_pretrained_models("detection", return_metrics=True)
     model_select_info = []
     for model_name, params in data["pretrainedModels"].items():
@@ -59,23 +66,18 @@ def init(data, state):
 
     state["selectedModel"] = {pretrained_model: data["pretrainedModels"][pretrained_model]["checkpoints"][0]['name']
                               for pretrained_model in data["pretrainedModels"].keys()}
-    state["useAuxiliaryHead"] = True
+
+    sly.logger.info("Model data is ready.")
     state["weightsInitialization"] = "pretrained"  # "custom"
     state["collapsedModels"] = True
     state["disabledModels"] = True
     state["weightsPath"] = ""
-    data["doneModels"] = False
     state["loadingModel"] = False
-
-    # default hyperparams that may be reassigned from model default params
-    init_dc.init_default_cfg_args(state)
-
-    sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
-                                min_report_percent=5).init_data(data)
+    state["device"] = "cuda:0"
 
 
 def get_pretrained_models(task="detection", return_metrics=False):
-    model_yamls = sly.json.load_json_file(os.path.join(g.root_source_dir, "models", f"{task}_meta.json"))
+    model_yamls = sly.json.load_json_file(os.path.join(g.models_configs_dir, f"{task}_meta.json"))
     model_config = {}
     all_metrics = []
     for model_meta in model_yamls:
@@ -161,103 +163,93 @@ def get_table_columns(metrics):
     return columns
 
 
-def download_sly_file(remote_path, local_path, progress):
-    file_info = g.api.file.get_info_by_path(g.team_id, remote_path)
+def download_sly_file(remote_path, local_path):
+    file_info = g.api.file.get_info_by_path(g.TEAM_ID, remote_path)
     if file_info is None:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), remote_path)
-    progress.set_total(file_info.sizeb)
-    g.api.file.download(g.team_id, remote_path, local_path, g.my_app.cache,
-                        progress.increment)
-    progress.reset_and_update()
+    g.api.file.download(g.TEAM_ID, remote_path, local_path, g.my_app.cache)
 
     sly.logger.info(f"{remote_path} has been successfully downloaded",
                     extra={"weights": local_path})
 
 
 def download_custom_config(state):
-    progress = sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download config", is_size=True,
-                                           min_report_percent=5)
-
     weights_remote_dir = os.path.dirname(state["weightsPath"])
     model_config_local_path = os.path.join(g.my_app.data_dir, 'config.py')
 
     config_remote_dir = os.path.join(weights_remote_dir, f'config.py')
-    if g.api.file.exists(g.team_id, config_remote_dir):
-        download_sly_file(config_remote_dir, model_config_local_path, progress)
+    if g.api.file.exists(g.TEAM_ID, config_remote_dir):
+        download_sly_file(config_remote_dir, model_config_local_path)
     return model_config_local_path
 
 
-@g.my_app.callback("download_weights")
-@sly.timeit
+def download_weights(state):
+    if state["weightsInitialization"] == "custom":
+        weights_path_remote = state["weightsPath"]
+        if not weights_path_remote.endswith(".pth"):
+            raise ValueError(f"Weights file has unsupported extension {sly.fs.get_file_ext(weights_path_remote)}. "
+                                f"Supported: '.pth'")
+
+        g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_path_remote))
+        if sly.fs.file_exists(g.local_weights_path):
+            os.remove(g.local_weights_path)
+
+        download_sly_file(weights_path_remote, g.local_weights_path)
+        g.model_config_local_path = download_custom_config(state)
+
+    else:
+        checkpoints_by_model = get_pretrained_models(state["task"])[state["pretrainedModel"]]["checkpoints"]
+        selected_model = next(item for item in checkpoints_by_model
+                                if item["name"] == state["selectedModel"][state["pretrainedModel"]])
+
+        weights_url = selected_model.get('weights')
+        config_file = selected_model.get('config_file')
+        if weights_url is not None:
+            g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))
+            g.model_config_local_path = os.path.join(g.root_source_path, config_file)
+            # TODO: check that pretrained weights are exist on remote server
+            if sly.fs.file_exists(g.local_weights_path) is False:
+                os.makedirs(os.path.dirname(g.local_weights_path), exist_ok=True)
+                sly.fs.download(weights_url, g.local_weights_path, g.my_app.cache)
+
+            sly.logger.info("Pretrained weights has been successfully downloaded",
+                            extra={"weights": g.local_weights_path})
+
+
+def init_model_and_cfg(state):
+    g.cfg = Config.fromfile(g.model_config_local_path)
+    g.cfg.model.pretrained = None
+    g.cfg.model.train_cfg = None
+    model = build_detector(g.cfg.model, test_cfg=g.cfg.get('test_cfg'))
+    checkpoint = load_checkpoint(model, g.local_weights_path, map_location='cpu')
+    if state["weightsInitialization"] == "custom":
+        classes = g.cfg.checkpoint_config.meta.CLASSES
+    else:
+        dataset_class_name = g.cfg.dataset_type
+        classes = str_to_class(dataset_class_name).CLASSES
+
+    model.CLASSES = classes
+    model.PALETTE = None
+    model.cfg = g.cfg
+    model.to(g.device)
+    model.eval()
+    model = revert_sync_batchnorm(model)
+    g.model = model
+
+    obj_classes = [sly.ObjClass(name, sly.Bitmap) for name in classes]
+    g.meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection(obj_classes))
+
+
+@g.my_app.callback("run")
 @g.my_app.ignore_errors_and_show_dialog_window()
-def download_weights(api: sly.Api, task_id, context, state, app_logger):
-    progress = sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
-                                           min_report_percent=5)
-    with_semantic_masks = False
-    model_config_local_path = None
-    try:
-        if state["weightsInitialization"] == "custom":
-            weights_path_remote = state["weightsPath"]
-            if not weights_path_remote.endswith(".pth"):
-                raise ValueError(f"Weights file has unsupported extension {sly.fs.get_file_ext(weights_path_remote)}. "
-                                 f"Supported: '.pth'")
-
-            g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_path_remote))
-            if sly.fs.file_exists(g.local_weights_path):
-                os.remove(g.local_weights_path)
-
-            download_sly_file(weights_path_remote, g.local_weights_path, progress)
-            model_config_local_path = download_custom_config(state)
-
-        else:
-            checkpoints_by_model = get_pretrained_models(state["task"])[state["pretrainedModel"]]["checkpoints"]
-            selected_model = next(item for item in checkpoints_by_model
-                                  if item["name"] == state["selectedModel"][state["pretrainedModel"]])
-
-            weights_url = selected_model.get('weights')
-            config_file = selected_model.get('config_file')
-            with_semantic_masks = selected_model.get('semantic')
-            if weights_url is not None:
-                g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))
-                model_config_local_path = os.path.join(g.root_source_dir, config_file)
-                # TODO: check that pretrained weights are exist on remote server
-                if sly.fs.file_exists(g.local_weights_path) is False:
-                    response = requests.head(weights_url, allow_redirects=True)
-                    sizeb = int(response.headers.get('content-length', 0))
-                    progress.set_total(sizeb)
-                    os.makedirs(os.path.dirname(g.local_weights_path), exist_ok=True)
-                    sly.fs.download(weights_url, g.local_weights_path, g.my_app.cache, progress.increment)
-                    progress.reset_and_update()
-                sly.logger.info("Pretrained weights has been successfully downloaded",
-                                extra={"weights": g.local_weights_path})
-
-
-
-    except Exception as e:
-        progress.reset_and_update()
-        raise e
-
+def init_model(api: sly.Api, task_id, context, state, app_logger):
+    g.remote_weights_path = state["weightsPath"]
+    g.device = state["device"]
+    download_weights(state)
+    init_model_and_cfg(state)
     fields = [
-        {"field": "state.loadingModel", "payload": False},
-        {"field": "data.doneModels", "payload": True},
-        {"field": "state.collapsedClasses", "payload": False},
-        {"field": "state.disabledClasses", "payload": False},
-        {"field": "state.activeStep", "payload": 4},
+        {"field": "state.loading", "payload": False},
+        {"field": "state.deployed", "payload": True},
     ]
-
-    global cfg
-    if model_config_local_path is None:
-        raise ValueError("Model config file not found!")
-    cfg = Config.fromfile(model_config_local_path)
-    if state["weightsInitialization"] != "custom":
-        cfg.pretrained_model = state["pretrainedModel"]
-        cfg.with_semantic_masks = with_semantic_masks
-
-    # print(f'Initial config:\n{cfg.pretty_text}') # TODO: debug
-    params = init_dc.rewrite_default_cfg_args(cfg, state)
-    fields.extend(params)
-
-    g.api.app.set_fields(g.task_id, fields)
-
-def restart(data, state):
-    data["doneModels"] = False
+    g.api.app.set_fields(g.TASK_ID, fields)
+    sly.logger.info("Model has been successfully deployed")
