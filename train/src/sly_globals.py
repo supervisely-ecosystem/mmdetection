@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import sys
 import supervisely as sly
+from supervisely.app.v1.app_service import AppService
 import shutil
 import zipfile
 import pkg_resources
@@ -24,7 +25,7 @@ secret_debug_env_path = os.path.join(root_source_dir, "train", "secret_debug.env
 # load_dotenv(debug_env_path)
 # load_dotenv(secret_debug_env_path, override=True)
 
-my_app = sly.AppService()
+my_app = AppService()
 api = my_app.public_api
 task_id = my_app.task_id
 

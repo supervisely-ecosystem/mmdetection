@@ -61,7 +61,8 @@ def inference_image_url(api: sly.Api, task_id, context, state, app_logger):
         ext = ".jpg"
     local_image_path = os.path.join(g.my_app.data_dir, sly.rand_str(15) + ext)
     sly.fs.download(image_url, local_image_path)
-    results = inference_image_path(local_image_path, context, state, app_logger)
+    results = inference_image_path(image_path=local_image_path, project_meta=g.meta,
+                                              context=context, state=state, app_logger=app_logger)
     sly.fs.silent_remove(local_image_path)
 
     request_id = context["request_id"]
@@ -76,7 +77,8 @@ def inference_image_id(api: sly.Api, task_id, context, state, app_logger):
     image_info = api.image.get_info_by_id(image_id)
     image_path = os.path.join(g.my_app.data_dir, sly.rand_str(10) + image_info.name)
     api.image.download_path(image_id, image_path)
-    ann_json = inference_image_path(image_path, context, state, app_logger)
+    ann_json = inference_image_path(image_path=image_path, project_meta=g.meta,
+                                              context=context, state=state, app_logger=app_logger)
     sly.fs.silent_remove(image_path)
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data=ann_json)
@@ -96,7 +98,8 @@ def inference_batch_ids(api: sly.Api, task_id, context, state, app_logger):
     results = []
     # TODO: change 
     for image_path in paths:
-        ann_json = inference_image_path(image_path, context, state, app_logger)
+        ann_json = inference_image_path(image_path=image_path, project_meta=g.meta,
+                                              context=context, state=state, app_logger=app_logger)
         results.append(ann_json)
         sly.fs.silent_remove(image_path)
 
@@ -104,8 +107,8 @@ def inference_batch_ids(api: sly.Api, task_id, context, state, app_logger):
     g.my_app.send_response(request_id, data=results)
 
 
-# TODO: @sly.process_image_roi
-def inference_image_path(image_path, context, state, app_logger):
+@sly.process_image_roi
+def inference_image_path(image_path, project_meta, context, state, app_logger):
     app_logger.debug("Input path", extra={"path": image_path})
 
     img = cv2.imread(image_path)

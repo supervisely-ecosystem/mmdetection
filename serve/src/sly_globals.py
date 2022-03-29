@@ -4,6 +4,7 @@ import sys
 import shutil
 import pkg_resources
 import supervisely as sly
+from supervisely.app.v1.app_service import AppService
 import zipfile
 from dotenv import load_dotenv
 
@@ -26,10 +27,10 @@ sys.path.append(models_configs_dir)
 debug_env_path = os.path.join(root_source_path, "serve", "debug.env")
 secret_debug_env_path = os.path.join(root_source_path, "serve", "secret_debug.env")
 # @TODO: for debug
-load_dotenv(debug_env_path)
-load_dotenv(secret_debug_env_path, override=True)
+# load_dotenv(debug_env_path)
+# load_dotenv(secret_debug_env_path, override=True)
 
-my_app = sly.AppService()
+my_app = AppService()
 api = my_app.public_api
 
 TASK_ID = my_app.task_id

@@ -1,9 +1,9 @@
 import os
 import supervisely as sly
 import sly_globals as g
-from supervisely.app.widgets import CompareGallery
+from supervisely.app.v1.widgets.compare_gallery import CompareGallery
 import input_project
-
+from sly_imgaugs import build_pipeline
 
 _templates = [
     {
@@ -45,7 +45,7 @@ augs_config_path = os.path.join(g.my_app.data_dir, "augs_config.json")
 
 def _load_template(json_path):
     config = sly.json.load_json_file(json_path)
-    pipeline = sly.imgaug_utils.build_pipeline(config["pipeline"], random_order=config["random_order"])  # to validate
+    pipeline = build_pipeline(config["pipeline"], random_order=config["random_order"])  # to validate
     py_code = sly.imgaug_utils.pipeline_to_python(config["pipeline"], config["random_order"])
 
     return pipeline, py_code, config
@@ -89,7 +89,7 @@ def init(data, state):
         "highlightActiveLine": False
     }
 
-    state["customAugsPath"] = ""  # "/mmclass-heavy-no-fliplr.json"  # @TODO: for debug
+    state["customAugsPath"] = ""
     data["customAugsPy"] = None
 
     global gallery1, gallery2

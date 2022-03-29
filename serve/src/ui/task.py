@@ -7,6 +7,7 @@ def init(data, state):
     state["task"] = "detection"
     state["collapsedTask"] = False
     state["disabledTask"] = False
+    state["modelsUpdating"] = False
     data["doneTask"] = False
     state["deployed"] = False
 
@@ -19,11 +20,12 @@ def restart(data, state):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def select_task(api: sly.Api, task_id, context, state, app_logger):
-    # TODO: add loading text while update architectures is performing
+    g.api.app.set_field(g.TASK_ID, "state.modelsUpdating", True)
     architectures.reload_task(state["task"])
     fields = [
         {"field": "state.collapsedModels", "payload": False},
         {"field": "state.disabledModels", "payload": False},
+        {"field": "state.modelsUpdating", "payload": False},
         {"field": "data.doneTask", "payload": True},
         {"field": "state.activeStep", "payload": 2},
     ]

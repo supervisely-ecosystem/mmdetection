@@ -121,7 +121,7 @@
                 "per_channel": false
             },
             "sometimes": 0.3,
-            "python": "iaa.Sometimes(0.3, iaa.contrast.AdditiveGaussianNoise(loc=0, scale=(1, 10), per_channel=False))"
+            "python": "iaa.Sometimes(0.3, iaa.arithmetic.AdditiveGaussianNoise(loc=0, scale=(1, 10), per_channel=False))"
         },
         {
             "category": "arithmetic",

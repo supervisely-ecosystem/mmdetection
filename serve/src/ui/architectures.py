@@ -211,7 +211,6 @@ def download_weights(state):
         if weights_url is not None:
             g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))
             g.model_config_local_path = os.path.join(g.root_source_path, config_file)
-            # TODO: check that pretrained weights are exist on remote server
             if sly.fs.file_exists(g.local_weights_path) is False:
                 os.makedirs(os.path.dirname(g.local_weights_path), exist_ok=True)
                 sly.fs.download(weights_url, g.local_weights_path, g.my_app.cache)
@@ -262,7 +261,7 @@ def init_model(api: sly.Api, task_id, context, state, app_logger):
     download_weights(state)
     init_model_and_cfg(state)
     fields = [
-        {"field": "state.loading", "payload": False},
+        {"field": "state.loadingModel", "payload": False},
         {"field": "state.deployed", "payload": True},
     ]
     g.api.app.set_fields(g.TASK_ID, fields)

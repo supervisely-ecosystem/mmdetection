@@ -3,9 +3,44 @@ from mmdet.datasets.builder import PIPELINES
 from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
 from imgaug.augmentables.segmaps import SegmentationMapsOnImage
 from mmdet.core.mask.structures import BitmapMasks
+from supervisely.sly_logger import logger
 import numpy as np
-import datetime
-import cv2
+import imgaug.augmenters as iaa
+
+
+def get_function(category_name, aug_name):
+    try:
+        submodule = getattr(iaa, category_name)
+        aug_f = getattr(submodule, aug_name)
+        return aug_f
+    except Exception as e:
+        logger.error(repr(e))
+        # raise e
+        return None
+
+def build_pipeline(aug_infos, random_order=False):
+    pipeline = []
+    for aug_info in aug_infos:
+        category_name = aug_info["category"]
+        aug_name = aug_info["name"]
+        params = aug_info["params"]
+        for param_name, param_val in params.items():
+            if isinstance(param_val, dict):
+                param_val["x"] = tuple(param_val["x"])
+                param_val["y"] = tuple(param_val["y"])
+            elif isinstance(param_val, list):
+                params[param_name] = tuple(param_val)
+
+        aug_func = get_function(category_name, aug_name)
+
+        aug = aug_func(**params)
+
+        sometimes = aug_info.get("sometimes", None)
+        if sometimes is not None:
+            aug = iaa.meta.Sometimes(sometimes, aug)
+        pipeline.append(aug)
+    augs = iaa.Sequential(pipeline, random_order=random_order)
+    return augs
 
 
 @PIPELINES.register_module()
@@ -14,8 +49,8 @@ class SlyImgAugs(object):
         self.config_path = config_path
         if self.config_path is not None:
             config = sly.json.load_json_file(self.config_path)
-            self.augs = sly.imgaug_utils.build_pipeline(config["pipeline"], random_order=config["random_order"])
-    
+            self.augs = build_pipeline(config["pipeline"], random_order=config["random_order"])
+
     def apply_to_image_and_bbox(self, augs, img, bbox):
         boxes = [BoundingBox(box[0], box[1], box[0] + box[2], box[1] + box[3]) for box in bbox]
         boxes = BoundingBoxesOnImage(boxes, shape=img.shape[:2])

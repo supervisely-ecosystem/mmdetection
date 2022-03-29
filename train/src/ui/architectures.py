@@ -7,6 +7,7 @@ import sly_globals as g
 import supervisely_lib as sly
 from mmcv import Config
 import init_default_cfg as init_dc
+from supervisely.app.v1.widgets.progress_bar import ProgressBar
 
 cfg = None
 
@@ -74,7 +75,7 @@ def init(data, state):
     # default hyperparams that may be reassigned from model default params
     init_dc.init_default_cfg_args(state)
 
-    sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
+    ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
                                 min_report_percent=5).init_data(data)
 
 
@@ -179,7 +180,7 @@ def download_sly_file(remote_path, local_path, progress):
 
 
 def download_custom_config(state):
-    progress = sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download config", is_size=True,
+    progress = ProgressBar(g.task_id, g.api, "data.progress6", "Download config", is_size=True,
                                            min_report_percent=5)
 
     weights_remote_dir = os.path.dirname(state["weightsPath"])
@@ -195,7 +196,7 @@ def download_custom_config(state):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def download_weights(api: sly.Api, task_id, context, state, app_logger):
-    progress = sly.app.widgets.ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
+    progress = ProgressBar(g.task_id, g.api, "data.progress6", "Download weights", is_size=True,
                                            min_report_percent=5)
     with_semantic_masks = False
     model_config_local_path = None
@@ -224,7 +225,6 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
             if weights_url is not None:
                 g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))
                 model_config_local_path = os.path.join(g.root_source_dir, config_file)
-                # TODO: check that pretrained weights are exist on remote server
                 if sly.fs.file_exists(g.local_weights_path) is False:
                     response = requests.head(weights_url, allow_redirects=True)
                     sizeb = int(response.headers.get('content-length', 0))

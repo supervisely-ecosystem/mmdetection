@@ -5,19 +5,27 @@
           :disabled="{disabled: state.disabledTask, message: 'Download data at step 1 before selecting classes.'}"
           ref="step2"
 >
+    <sly-field title="INFO: How to select task?"
+        description="MMDetection provides tool for training models to solve different problems. Currently Supervisely supports two kind of tasks: object detection and instance segmentation. If you are interested in using other MMDetection functionality such as Panoptic Segmentation, Contrastive Learning or Knowledge Distillation, write us and we will try to find ways to help you! At this step you should select problem that you want to solve. Of course, you should have appropriate data with markup for this task. Outputs of object detection models - only bounding boxes with confidence. Outputs of instance segmentation models in addition contain object masks. Selected task at this step defines models list to choose. If you want to train model based on already trained custom model, choose the appropriate task."
+        style="padding-top: 0; padding-bottom: 0; margin: 10px 5px;">
+
+        <sly-icon slot="icon" :options="{ color: '#cece66', bgColor: '#f7f7eb', rounded: false }">
+            <i class="zmdi zmdi-info"></i>
+        </sly-icon>
+    </sly-field>
     <sly-field title="Select ML problem to solve">
-        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">object detection</el-radio></div>
-        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">instance segmentation</el-radio></div>
+        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">Object detection</el-radio></div>
+        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">Instance segmentation</el-radio></div>
     </sly-field>
 
-    <div v-if="state.splitInProgress">
+    <div v-if="state.modelsUpdating">
         <span style="color: #5a6772;">Loading model configs of selected task...</span>
     </div>
 
     <el-button
             type="primary"
             class="mt10 regular"
-            :loading="state.splitInProgress"
+            :loading="state.modelsUpdating"
             v-if="!data.doneTask"
             @click="command('select_task')">
         Select task

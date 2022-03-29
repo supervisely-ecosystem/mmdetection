@@ -7,7 +7,7 @@ def init(data, state):
     state["task"] = "detection"
     state["collapsedTask"] = True
     state["disabledTask"] = True
-    state["splitInProgress"] = False
+    state["modelsUpdating"] = False
     data["doneTask"] = False
 
 
@@ -36,17 +36,16 @@ def check_labels(task):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def select_task(api: sly.Api, task_id, context, state, app_logger):
-    g.api.app.set_field(g.task_id, "state.splitInProgress", True)
+    g.api.app.set_field(g.task_id, "state.modelsUpdating", True)
     try:
         check_labels(state["task"])
     except ValueError as e:
         return
-    # TODO: add loading text while update architectures is performing
     architectures.reload_task(state["task"])
     fields = [
         {"field": "state.collapsedModels", "payload": False},
         {"field": "state.disabledModels", "payload": False},
-        {"field": "state.splitInProgress", "payload": False},
+        {"field": "state.modelsUpdating", "payload": False},
         {"field": "data.doneTask", "payload": True},
         {"field": "state.activeStep", "payload": 3},
     ]
