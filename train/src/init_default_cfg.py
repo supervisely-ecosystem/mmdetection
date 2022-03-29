@@ -1,3 +1,4 @@
+import sly_globals as g
 def init_default_cfg_args(state):
     state["epochs"] = 12
     state["valInterval"] = 12
@@ -139,11 +140,15 @@ def rewrite_default_cfg_args(cfg, state):
                 "field": "state.warmup",
                 "payload": warmup
             }])
-        # TODO: check - decrease if big value
+        
         if hasattr(cfg.lr_config, "warmup_iters"):
+            warmup_iters = cfg.lr_config.warmup_iters
+            # warmup iters no more than half of all data length
+            if warmup_iters > g.project_info.items_count * 0.5 // state["batchSizePerGPU"]:
+                warmup_iters = g.project_info.items_count * 0.5 // state["batchSizePerGPU"]
             params.extend([{
                 "field": "state.warmupIters",
-                "payload": cfg.lr_config.warmup_iters
+                "payload": warmup_iters
             }])
         if hasattr(cfg.lr_config, "warmup_ratio"):
             params.extend([{

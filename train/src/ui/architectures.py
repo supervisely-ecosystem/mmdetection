@@ -224,7 +224,6 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
             if weights_url is not None:
                 g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))
                 model_config_local_path = os.path.join(g.root_source_dir, config_file)
-                # TODO: check that pretrained weights are exist on remote server
                 if sly.fs.file_exists(g.local_weights_path) is False:
                     response = requests.head(weights_url, allow_redirects=True)
                     sizeb = int(response.headers.get('content-length', 0))

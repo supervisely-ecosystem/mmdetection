@@ -6,18 +6,18 @@
           ref="step2"
 >
     <sly-field title="Select ML problem to solve">
-        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">object detection</el-radio></div>
-        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">instance segmentation</el-radio></div>
+        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">Object detection</el-radio></div>
+        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">Instance segmentation</el-radio></div>
     </sly-field>
 
-    <div v-if="state.splitInProgress">
+    <div v-if="state.modelsUpdating">
         <span style="color: #5a6772;">Loading model configs of selected task...</span>
     </div>
 
     <el-button
             type="primary"
             class="mt10 regular"
-            :loading="state.splitInProgress"
+            :loading="state.modelsUpdating"
             v-if="!data.doneTask"
             @click="command('select_task')">
         Select task

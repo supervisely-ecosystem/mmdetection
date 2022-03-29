@@ -26,8 +26,8 @@ sys.path.append(models_configs_dir)
 debug_env_path = os.path.join(root_source_path, "serve", "debug.env")
 secret_debug_env_path = os.path.join(root_source_path, "serve", "secret_debug.env")
 # @TODO: for debug
-load_dotenv(debug_env_path)
-load_dotenv(secret_debug_env_path, override=True)
+# load_dotenv(debug_env_path)
+# load_dotenv(secret_debug_env_path, override=True)
 
 my_app = sly.AppService()
 api = my_app.public_api
