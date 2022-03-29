@@ -3,7 +3,7 @@
                     and Bitmap. Other classes are ignored"
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedClasses"
-          :disabled="{disabled: state.disabledClasses, message: 'Select task at step 1 before selecting classes'}"
+          :disabled="{disabled: state.disabledClasses, message: 'Select model to train at step 3 before selecting classes.'}"
           ref="step4"
 >
     <el-table
@@ -30,29 +30,17 @@
         <el-table-column prop="objectsCount" label="Objects count" sortable width="180"></el-table-column>
         <el-table-column prop="areaPercent" label="Area percent" sortable width="150"></el-table-column>
     </el-table>
-    <!--
-    <sly-field title="INFO: Background Class"
-			   description="background class (name: __bg__, color: [0, 0, 0]) will be added automatically"
-			   style="padding-top: 0; padding-bottom: 0; margin: 10px 5px;">
-
-		<sly-icon slot="icon" :options="{ color: '#13ce66', bgColor: '#e1f7eb', rounded: false }">
-			<i class="zmdi zmdi-info"></i>
-		</sly-icon>
-	</sly-field>
-    -->
-
-    <sly-field v-if="!data.doneClasses" title="INFO: Missed labels"
-			   description="Images without labels of selected classes will be skipped automatically."
-			   style="padding-top: 0; padding-bottom: 0; margin: 10px 5px;">
-
-		<sly-icon slot="icon" :options="{ color: '#b8ac05', bgColor: '#fffbca', rounded: false }">
-			<i class="zmdi zmdi-info"></i>
-		</sly-icon>
-	</sly-field>
+    
+    <sly-field title="Empty samples" description="Select action to do with dataset samples without any selected labels (more options coming soon).">
+        <el-select v-model="state.emptyAction" :disabled="true">
+            <el-option key="ignore" label="ignore" value="ignore"></el-option>
+        </el-select>
+    </sly-field>
 
     <div v-if="state.findingItemsToIgnore">
-        <span style="color: #5a6772;">Filtering project data...</span>
+        <span style="color: #5a6772;">Filtering classes and geometry types in project...</span>
     </div>
+
     <el-button type="primary" class="regular mt10"
                @click="command('use_classes')"
                :disabled="state.selectedClasses.length < 1"

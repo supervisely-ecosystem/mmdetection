@@ -1,8 +1,12 @@
 import supervisely as sly
 import functools
 import sly_globals as g
-import utils
 import os
+import cv2
+import ui
+from mmdet.apis import inference_detector
+import sly_mse_loss
+import sly_semantic_head
 
 def send_error_data(func):
     @functools.wraps(func)
@@ -16,11 +20,13 @@ def send_error_data(func):
         return value
     return wrapper
 
+
 @g.my_app.callback("get_output_classes_and_tags")
 @sly.timeit
 def get_output_classes_and_tags(api: sly.Api, task_id, context, state, app_logger):
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data=g.meta.to_json())
+
 
 @g.my_app.callback("get_custom_inference_settings")
 @sly.timeit
@@ -28,18 +34,21 @@ def get_custom_inference_settings(api: sly.Api, task_id, context, state, app_log
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data={"settings": {}})
 
+
 @g.my_app.callback("get_session_info")
 @sly.timeit
 @send_error_data
 def get_session_info(api: sly.Api, task_id, context, state, app_logger):
     info = {
-        "app": "MM Segmentation Serve",
+        "app": "MM Detection Serve",
         "device": g.device,
         "session_id": task_id,
         "classes_count": len(g.meta.obj_classes),
+        "tags_count": len(g.meta.tag_metas),
     }
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data=info)
+
 
 @g.my_app.callback("inference_image_url")
 @sly.timeit
@@ -52,7 +61,7 @@ def inference_image_url(api: sly.Api, task_id, context, state, app_logger):
         ext = ".jpg"
     local_image_path = os.path.join(g.my_app.data_dir, sly.rand_str(15) + ext)
     sly.fs.download(image_url, local_image_path)
-    results = utils.inference_image_path(local_image_path, context, state, app_logger)
+    results = inference_image_path(local_image_path, context, state, app_logger)
     sly.fs.silent_remove(local_image_path)
 
     request_id = context["request_id"]
@@ -67,7 +76,7 @@ def inference_image_id(api: sly.Api, task_id, context, state, app_logger):
     image_info = api.image.get_info_by_id(image_id)
     image_path = os.path.join(g.my_app.data_dir, sly.rand_str(10) + image_info.name)
     api.image.download_path(image_id, image_path)
-    ann_json = utils.inference_image_path(image_path, context, state, app_logger)
+    ann_json = inference_image_path(image_path, context, state, app_logger)
     sly.fs.silent_remove(image_path)
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data=ann_json)
@@ -85,8 +94,9 @@ def inference_batch_ids(api: sly.Api, task_id, context, state, app_logger):
     api.image.download_paths(infos[0].dataset_id, ids, paths)
 
     results = []
+    # TODO: change 
     for image_path in paths:
-        ann_json = utils.inference_image_path(image_path, context, state, app_logger)
+        ann_json = inference_image_path(image_path, context, state, app_logger)
         results.append(ann_json)
         sly.fs.silent_remove(image_path)
 
@@ -94,54 +104,55 @@ def inference_batch_ids(api: sly.Api, task_id, context, state, app_logger):
     g.my_app.send_response(request_id, data=results)
 
 
-@g.my_app.callback("run")
-@g.my_app.ignore_errors_and_show_dialog_window()
-def init_model(api: sly.Api, task_id, context, state, app_logger):
-    g.remote_weights_path = state["weightsPath"]
-    g.device = state["device"]
-    utils.download_weights(state)
-    utils.init_model_and_cfg(state)
-    fields = [
-        {"field": "state.loading", "payload": False},
-        {"field": "state.deployed", "payload": True},
-    ]
-    g.api.app.set_fields(g.TASK_ID, fields)
-    sly.logger.info("Model has been successfully deployed")
+# TODO: @sly.process_image_roi
+def inference_image_path(image_path, context, state, app_logger):
+    app_logger.debug("Input path", extra={"path": image_path})
 
+    img = cv2.imread(image_path)
+    result = inference_detector(g.model, img)
 
-def init_state_and_data(data, state):
-    state['pretrainedModel'] = 'SegFormer'
-    data["pretrainedModels"], metrics = utils.get_pretrained_models(return_metrics=True)
-    model_select_info = []
-    for model_name, params in data["pretrainedModels"].items():
-        model_select_info.append({
-            "name": model_name,
-            "paper_from": params["paper_from"],
-            "year": params["year"]
-        })
-    data["pretrainedModelsInfo"] = model_select_info
-    data["configLinks"] = {model_name: params["config_url"] for model_name, params in data["pretrainedModels"].items()}
+    if isinstance(result, tuple):
+        bbox_result, segm_result = result
+        if isinstance(segm_result, tuple):
+            segm_result = segm_result[0]  # ms rcnn
+        if isinstance(bbox_result, dict):
+            bbox_result, segm_result = bbox_result['ensemble'], segm_result['ensemble']
+    else:
+        bbox_result, segm_result = result, None
+        if isinstance(bbox_result, dict):
+            bbox_result = bbox_result['ensemble']
+    
+    labels = []
+    classes = [obj["title"] for obj in g.meta.obj_classes.to_json()]
+    if segm_result is None:
+        for bboxes, class_name in zip(bbox_result, classes):
+            obj_class = g.meta.get_obj_class(class_name)
+            for bbox in bboxes:
+                top, left, bottom, right, score = int(bbox[1]), int(bbox[0]), int(bbox[3]), int(bbox[2]), bbox[4]
+                if "confidence_thresh" in state["settings"].keys() and score < state["settings"]["confidence_thresh"]:
+                    continue
+                rect = sly.Rectangle(top, left, bottom, right)
+                conf_tag = sly.Tag(g.meta.get_tag_meta('confidence'), round(float(score), 4))
+                rect_label = sly.Label(rect, obj_class, sly.TagCollection([conf_tag]))
+                labels.append(rect_label)
+    else:
+        for bboxes, masks, class_name in zip(bbox_result, segm_result, classes):
+            assert len(bbox_result) == len(segm_result)
+            obj_class = g.meta.get_obj_class(class_name)
+            for bbox, mask in zip(bboxes, masks):
+                score = bbox[4]
+                if "confidence_thresh" in state["settings"].keys() and score < state["settings"]["confidence_thresh"]:
+                    continue
+                conf_tag = sly.Tag(g.meta.get_tag_meta('confidence'), round(float(score), 4))
+                if mask.any():
+                    bitmap = sly.Bitmap(mask)
+                    mask_label = sly.Label(bitmap, obj_class, sly.TagCollection([conf_tag]))
+                    labels.append(mask_label)
 
-    data["modelColumns"] = utils.get_table_columns(metrics)
-    state["weightsInitialization"] = "pretrained"
-    state["selectedModel"] = {pretrained_model: data["pretrainedModels"][pretrained_model]["checkpoints"][0]['name']
-                              for pretrained_model in data["pretrainedModels"].keys()}
-    state["device"] = "cuda:0"
-    state["weightsPath"] = ""
-    state["loading"] = False
-    state["deployed"] = False
-    '''
-    data["github_icon"] = {
-        "imageUrl": "https://github.githubassets.com/favicons/favicon.png",
-        "rounded": False,
-        "bgColor": "rgba(0,0,0,0)"
-    }
-    data["arxiv_icon"] = {
-        "imageUrl": "https://static.arxiv.org/static/browse/0.3.2.8/images/icons/favicon.ico",
-        "rounded": False,
-        "bgColor": "rgba(0,0,0,0)"
-    }
-    '''
+    ann = sly.Annotation(img_size=img.shape[:2], labels=labels, )
+    ann_json = ann.to_json()
+
+    return ann_json
 
 
 def main():
@@ -152,7 +163,7 @@ def main():
     data = {}
     state = {}
 
-    init_state_and_data(data, state)
+    ui.init(data, state)  # init data for UI widgets
 
     g.my_app.compile_template(g.root_source_path)
     g.my_app.run(data=data, state=state)

@@ -9,8 +9,8 @@ def init_general(state):
 def init_checkpoints(state):
     state["checkpointInterval"] = 12
     state["maxKeepCkptsEnabled"] = True
-    state["maxKeepCkpts"] = 2
-    state["saveLast"] = True
+    state["maxKeepCkpts"] = 1
+    state["saveLast"] = False
     state["saveBest"] = True
 
 def init_optimizer(state):
@@ -39,7 +39,7 @@ def init_lr_scheduler(data, state):
     state["cyclicTimes"] = 10
     state["stepRatioUp"] = 0.4
     state["annealStrategy"] = "cos"
-    state["cyclicGamma"] = 1
+    # state["cyclicGamma"] = 1
     state["totalStepsEnabled"] = False
     state["totalSteps"] = None
     state["maxLR"] = ""
@@ -76,13 +76,6 @@ def use_hyp(api: sly.Api, task_id, context, state, app_logger):
         {"field": "state.disabledMonitoring", "payload": False},
         {"field": "state.activeStep", "payload": 8},
     ]
-    '''
-    if state["batchSizePerGPU"] > len(splits.val_set):
-        fields.append({"field": "state.batchSizePerGPU", "payload": len(splits.val_set)})
-        g.my_app.show_modal_window(
-            f"Specified batch size is more than validation split length. Batch size will be equal to length of validation split ({len(splits.val_set)})."
-        )
-    '''
     if state["batchSizePerGPU"] > len(splits.train_set):
         fields.append({"field": "state.batchSizePerGPU", "payload": len(splits.train_set)})
         g.my_app.show_modal_window(

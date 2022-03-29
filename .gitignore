@@ -6,5 +6,7 @@ cache
 data
 train/src/__pycache__
 train/src/ui/__pycache__
+serve/src/__pycache__
+serve/src/ui/__pycache__
 .vscode
 *.png

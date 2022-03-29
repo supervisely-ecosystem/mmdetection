@@ -4,7 +4,7 @@ import sly_globals as g
 import os
 from functools import partial
 from mmcv.cnn.utils import revert_sync_batchnorm
-from mmdet.apis import train_detector #, inference_detector, show_result_pyplot
+from mmdet.apis import train_detector, inference_detector, show_result_pyplot
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 from init_cfg import init_cfg
@@ -147,15 +147,11 @@ def init_class_charts_series(state):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def train(api: sly.Api, task_id, context, state, app_logger):
-    init_class_charts_series(state)
-
     try:
+        init_class_charts_series(state)
         sly.json.dump_json_file(state, os.path.join(g.info_dir, "ui_state.json"))
         
-        classes_json = g.project_meta.obj_classes.to_json()
-        classes = [obj["title"] for obj in classes_json if obj["title"]]
-        
-        cfg = init_cfg(state, classes, None)
+        cfg = init_cfg(state, state["selectedClasses"], None)
         # dump config
         os.makedirs(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1]), exist_ok=True)
         cfg.dump(os.path.join(g.checkpoints_dir, cfg.work_dir.split('/')[-1], "config.py"))
@@ -203,11 +199,13 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
+
+        # stop application
+        g.my_app.stop()
         
     except Exception as e:
         g.api.app.set_field(task_id, "state.started", False)
         sly.logger.info(e)
         raise e  # app will handle this error and show modal window
 
-    # stop application
-    g.my_app.stop()
+    

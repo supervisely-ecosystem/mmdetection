@@ -50,8 +50,8 @@ sly.fs.mkdir(checkpoints_dir)
 configs_dir = os.path.join(root_source_dir, "configs")
 mmdet_ver = pkg_resources.get_distribution("mmdet").version
 zip_path = f"/tmp/mmdet/v{mmdet_ver}.zip"
-sly.logger.info(f"Getting model configs of current mmdetection version {mmdet_ver}...")
-if os.path.exists(zip_path) and os.path.isfile(zip_path):
+if os.path.exists(zip_path) and os.path.isfile(zip_path) and not os.path.exists(configs_dir):
+    sly.logger.info(f"Getting model configs of current mmdetection version {mmdet_ver}...")
     copied_zip_path = os.path.join(my_app.data_dir, f"v{mmdet_ver}.zip")
     shutil.copyfile(zip_path, copied_zip_path)
     with zipfile.ZipFile(copied_zip_path, 'r') as zip_ref:

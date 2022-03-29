@@ -241,6 +241,7 @@
                                     LR in the total cycle">
                 <el-input-number v-model="state.stepRatioUp" :min="0" :max="0.9999" :step="0.0001" :debounce="1000" :disabled="data.doneHyperparams"></el-input-number>
             </sly-field>
+            <!--
             <sly-field v-if="['Cyclic'].includes(state.lrPolicy)" title="Gamma"
                        description="Cycle decay ratio.
                                     It takes values in the range (0, 1]. The difference between the
@@ -248,6 +249,7 @@
                                     periodically when it is less than 1.">
                 <el-input-number v-model="state.cyclicGamma" :min="0.00001" :step="0.00001" :max="1" :debounce="1000" :disabled="data.doneHyperparams"></el-input-number>
             </sly-field>
+            -->
             <sly-field v-if="['Cyclic', 'OneCycle'].includes(state.lrPolicy)" title="Anneal strategy"
                        description="Specifies the annealing strategy: 'cos' for cosine annealing,
                                     'linear' for linear annealing">

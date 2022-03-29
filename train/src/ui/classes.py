@@ -18,11 +18,10 @@ def init(api: sly.Api, data, state, project_id, project_meta: sly.ProjectMeta):
     for item in stats["objectsArea"]["items"]:
         class_area[item["objectClass"]["name"]] = round(item["total"], 2)
 
-    # keep only polygon + bitmap (brush) classes
     semantic_classes_json = []
     for obj_class in project_meta.obj_classes:
         obj_class: sly.ObjClass
-        if obj_class.geometry_type in [sly.Polygon, sly.Bitmap]:
+        if obj_class.geometry_type in [sly.Polygon, sly.Bitmap, sly.Rectangle]:
             semantic_classes_json.append(obj_class.to_json())
 
     for obj_class in semantic_classes_json:
@@ -40,20 +39,22 @@ def init(api: sly.Api, data, state, project_id, project_meta: sly.ProjectMeta):
     data["unlabeledCount"] = unlabeled_count
     state["ignoredItems"] = 0
     state["totalItems"] = g.project_info.items_count
-
+    state["emptyAction"] = "ignore"
     state["findingItemsToIgnore"] = False
     data["doneClasses"] = False
     state["collapsedClasses"] = True
     state["disabledClasses"] = True
 
 
-def get_items_to_ignore(selected_classes):
+def get_items_to_ignore(selected_classes, task):
     items_to_ignore = {}
     for dataset in g.api.dataset.get_list(g.project_id):
         items_to_ignore[dataset.name] = []
         for ann_info in g.api.annotation.get_list(dataset.id):
             ann_objects = ann_info.annotation["objects"]
             labels_to_include = [label for label in ann_objects if label["classTitle"] in selected_classes]
+            if task == "instance_segmentation":
+                labels_to_include = [label for label in ann_objects if label["geometryType"] in ["bitmap", "polygon"]]
             if len(labels_to_include) == 0:
                 items_to_ignore[dataset.name].append(ann_info.image_name)
     return items_to_ignore
@@ -69,7 +70,7 @@ def use_classes(api: sly.Api, task_id, context, state, app_logger):
     sly.logger.info(f"Project data: {g.project_fs.total_items} images")
     g.api.app.set_field(g.task_id, "state.findingItemsToIgnore", True)
     
-    splits.items_to_ignore = get_items_to_ignore(state["selectedClasses"])
+    splits.items_to_ignore = get_items_to_ignore(state["selectedClasses"], state["task"])
     ignored_items_count = sum([len(ds_items) for ds_items in splits.items_to_ignore.values()])
     
     sly.logger.info(f"{ignored_items_count} images without selected labels ignored.")

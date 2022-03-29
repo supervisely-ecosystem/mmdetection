@@ -2,7 +2,7 @@
           subtitle="Define how to split your data to train/val subsets."
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedSplits"
-          :disabled="{disabled: state.disabledSplits, message: 'Select classes at step 2 before choosing train/val splits.'}"
+          :disabled="{disabled: state.disabledSplits, message: 'Select classes at step 4 before choosing train/val splits.'}"
           ref="step5"
 >
     <el-tabs type="border-card" class="el-tabs-cards" v-model="state.splitMethod">
@@ -96,6 +96,7 @@
                     description="Choose what to do with double tagged images">
                 <el-select v-model="state.doubleTaggedImages" :disabled="data.doneSplits" placeholder="Select"
                         style="width: 280px;">
+                    <el-option key="both" label="add double tagged images to val and train (both) sets" value="both"></el-option>
                     <el-option key="ignore" label="ignore double tagged images" value="ignore"></el-option>
                     <el-option key="train" label="add double tagged images to train set" value="train"></el-option>
                     <el-option key="val" label="add double tagged images to val set" value="val"></el-option>
@@ -134,6 +135,20 @@
             </sly-field>
         </el-tab-pane>
     </el-tabs>
+
+    <div v-if="state.progressConvertTrain" class="mt10">
+        <div style="color: #20a0ff">
+            Converting supervisely train annotations to COCO format: {{state.progressCurrentConvertTrain}} / {{state.progressTotalConvertTrain}}
+        </div>
+        <el-progress :percentage="state.progressPercentConvertTrain"></el-progress>
+    </div>
+
+    <div v-if="state.progressConvertVal" class="mt10">
+        <div style="color: #20a0ff">
+            Converting supervisely val annotations to COCO format: {{state.progressCurrentConvertVal}} / {{state.progressTotalConvertVal}}
+        </div>
+        <el-progress :percentage="state.progressPercentConvertVal"></el-progress>
+    </div>
 
     <el-button
             type="primary"
