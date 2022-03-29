@@ -218,26 +218,36 @@ def download_weights(state):
 
 def init_model_and_cfg(state):
     g.cfg = Config.fromfile(g.model_config_local_path)
+    # TODO: check in init_detector
     g.cfg.model.pretrained = None
     g.cfg.model.train_cfg = None
     model = build_detector(g.cfg.model, test_cfg=g.cfg.get('test_cfg'))
     checkpoint = load_checkpoint(model, g.local_weights_path, map_location='cpu')
     if state["weightsInitialization"] == "custom":
         classes = g.cfg.checkpoint_config.meta.CLASSES
+        if "segm" in g.cfg.evaluation.metric:
+            obj_classes = [sly.ObjClass(name, sly.Bitmap) for name in classes]
+        else:
+            obj_classes = [sly.ObjClass(name, sly.Rectangle) for name in classes]
     else:
         dataset_class_name = g.cfg.dataset_type
         classes = str_to_class(dataset_class_name).CLASSES
+        if state["task"] == "detection":
+            obj_classes = [sly.ObjClass(name, sly.Rectangle) for name in classes]
+        elif state["task"] == "instance_segmentation":
+            obj_classes = [sly.ObjClass(name, sly.Bitmap) for name in classes]
 
     model.CLASSES = classes
-    model.PALETTE = None
     model.cfg = g.cfg
     model.to(g.device)
     model.eval()
     model = revert_sync_batchnorm(model)
     g.model = model
 
-    obj_classes = [sly.ObjClass(name, sly.Bitmap) for name in classes]
-    g.meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection(obj_classes))
+    tags = [sly.TagMeta('confidence', sly.TagValueType.ANY_NUMBER)]
+
+    g.meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection(obj_classes),
+                             tag_metas=sly.TagMetaCollection(tags))
 
 
 @g.my_app.callback("run")

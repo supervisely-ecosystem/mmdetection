@@ -40,10 +40,11 @@ def get_custom_inference_settings(api: sly.Api, task_id, context, state, app_log
 @send_error_data
 def get_session_info(api: sly.Api, task_id, context, state, app_logger):
     info = {
-        "app": "MM Segmentation Serve",
+        "app": "MM Detection Serve",
         "device": g.device,
         "session_id": task_id,
         "classes_count": len(g.meta.obj_classes),
+        "tags_count": len(g.meta.tag_metas),
     }
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data=info)
@@ -103,25 +104,52 @@ def inference_batch_ids(api: sly.Api, task_id, context, state, app_logger):
     g.my_app.send_response(request_id, data=results)
 
 
-# TODO: add crop decorator
+# TODO: @sly.process_image_roi
 def inference_image_path(image_path, context, state, app_logger):
     app_logger.debug("Input path", extra={"path": image_path})
 
     img = cv2.imread(image_path)
-    raw_result = inference_detector(g.model, img)[0]
+    result = inference_detector(g.model, img)
 
+    if isinstance(result, tuple):
+        bbox_result, segm_result = result
+        if isinstance(segm_result, tuple):
+            segm_result = segm_result[0]  # ms rcnn
+        if isinstance(bbox_result, dict):
+            bbox_result, segm_result = bbox_result['ensemble'], segm_result['ensemble']
+    else:
+        bbox_result, segm_result = result, None
+        if isinstance(bbox_result, dict):
+            bbox_result = bbox_result['ensemble']
+    
     labels = []
     classes = [obj["title"] for obj in g.meta.obj_classes.to_json()]
+    if segm_result is None:
+        for bboxes, class_name in zip(bbox_result, classes):
+            obj_class = g.meta.get_obj_class(class_name)
+            for bbox in bboxes:
+                top, left, bottom, right, score = int(bbox[1]), int(bbox[0]), int(bbox[3]), int(bbox[2]), bbox[4]
+                if "confidence_thresh" in state["settings"].keys() and score < state["settings"]["confidence_thresh"]:
+                    continue
+                rect = sly.Rectangle(top, left, bottom, right)
+                conf_tag = sly.Tag(g.meta.get_tag_meta('confidence'), round(float(score), 4))
+                rect_label = sly.Label(rect, obj_class, sly.TagCollection([conf_tag]))
+                labels.append(rect_label)
+    else:
+        for bboxes, masks, class_name in zip(bbox_result, segm_result, classes):
+            assert len(bbox_result) == len(segm_result)
+            obj_class = g.meta.get_obj_class(class_name)
+            for bbox, mask in zip(bboxes, masks):
+                score = bbox[4]
+                if "confidence_thresh" in state["settings"].keys() and score < state["settings"]["confidence_thresh"]:
+                    continue
+                conf_tag = sly.Tag(g.meta.get_tag_meta('confidence'), round(float(score), 4))
+                if mask.any():
+                    bitmap = sly.Bitmap(mask)
+                    mask_label = sly.Label(bitmap, obj_class, sly.TagCollection([conf_tag]))
+                    labels.append(mask_label)
 
-    '''
-    for idx, class_name in enumerate(classes):
-        class_mask = raw_result == idx
-        obj_class = g.meta.get_obj_class(class_name)
-        label = sly.Label(sly.Bitmap(class_mask), obj_class)
-        labels.append(label)
-    '''
-
-    ann = sly.Annotation(img_size=raw_result.shape, labels=labels, )
+    ann = sly.Annotation(img_size=img.shape[:2], labels=labels, )
     ann_json = ann.to_json()
 
     return ann_json
