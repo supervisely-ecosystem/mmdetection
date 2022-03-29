@@ -1,4 +1,4 @@
-<sly-card title="Detection / instance segmentation models"
+<sly-card :title="`${data.taskTitle} models`"
           subtitle="Choose model architecture and how weights should be initialized"
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedModels"
@@ -39,19 +39,22 @@
                             </thead>
                             <tbody>
                                 <tr v-for="model in data.pretrainedModels[state.pretrainedModel]['checkpoints']">
-                                    <td v-for="column in data.modelColumns" v-if="data.pretrainedModels[state.pretrainedModel].all_keys.includes(column.key)">
-                                        <div v-if="column.key === 'name'">
-                                            <el-radio
-                                                    class="radio" v-model="state.selectedModel[state.pretrainedModel]"
-                                                    :label="model[column.key]"
-                                                    :disabled="state.deployed">
-                                                <span> {{model[column.key]}} </span>
-                                            </el-radio>
-                                        </div>
-                                        <div v-else>
-                                            <span v-if="model[column.key]" >{{model[column.key]}}</span><span v-else> - </span>
-                                        </div>
-                                    </td>
+                                    <template v-for="column in data.modelColumns">
+                                        <td :class="{'hid-text': column.key === 'name'}" v-if="data.pretrainedModels[state.pretrainedModel].all_keys.includes(column.key)">
+                                            <div v-if="column.key === 'name'">
+                                                <el-radio
+                                                        class="radio" v-model="state.selectedModel[state.pretrainedModel]"
+                                                        :label="model[column.key]"
+                                                        :disabled="state.deployed">
+                                                    
+                                                    <span> {{model[column.key]}} </span>
+                                                </el-radio>
+                                            </div>
+                                            <div v-else>
+                                                <span v-if="model[column.key]" >{{model[column.key]}}</span><span v-else> - </span>
+                                            </div>
+                                        </td>
+                                    </template>
                                 </tr>
                             </tbody>
                         </table>

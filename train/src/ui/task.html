@@ -1,14 +1,18 @@
-<sly-card title="Task"
+<sly-card title="MMDetection task"
           subtitle="Select task from the list below"
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsedTask"
           :disabled="{disabled: state.disabledTask, message: 'Download data at step 1 before selecting classes.'}"
           ref="step2"
 >
-    <sly-field title="MMDetection task">
-        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">detection</el-radio></div>
+    <sly-field title="Select ML problem to solve">
+        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">object detection</el-radio></div>
         <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">instance segmentation</el-radio></div>
     </sly-field>
+
+    <div v-if="state.splitInProgress">
+        <span style="color: #5a6772;">Loading model configs of selected task...</span>
+    </div>
 
     <el-button
             type="primary"

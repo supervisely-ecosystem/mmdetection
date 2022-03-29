@@ -1,6 +1,5 @@
 import datetime
 from mmcv.runner.hooks import HOOKS
-from mmcv.runner.hooks import HOOKS
 from mmcv.runner.hooks.logger.text import TextLoggerHook
 import supervisely_lib as sly
 from sly_train_progress import add_progress_to_request
@@ -41,10 +40,8 @@ class SuperviselyLoggerHook(TextLoggerHook):
             self.progress_epoch.set_current_value(log_dict["epoch"])
             self.progress_iter.set(log_dict['iter'] % len(runner.data_loader), len(runner.data_loader))
             fields.append({"field": "data.eta", "payload": log_dict['eta']})
-            is_val = log_dict['iter'] % len(runner.data_loader) == 0
-            fields.append({"field": "state.isValidation", "payload": is_val})
-        else:
-            fields.append({"field": "state.isValidation", "payload": True})
+
+        fields.append({"field": "state.isValidation", "payload": log_dict['mode'] == 'val'})
 
         add_progress_to_request(fields, "Epoch", self.progress_epoch)
         add_progress_to_request(fields, "Iter", self.progress_iter)

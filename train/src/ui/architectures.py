@@ -13,8 +13,10 @@ cfg = None
 def reload_task(task):
     if task == "detection":
         pretrainedModel = 'TOOD'
+        taskTitle = 'Object detection'
     elif task == "instance_segmentation":
         pretrainedModel = 'QueryInst'
+        taskTitle = 'Instance segmentation'
     pretrainedModels, metrics = get_pretrained_models(task, return_metrics=True)
     model_select_info = []
     for model_name, params in pretrainedModels.items():
@@ -35,6 +37,7 @@ def reload_task(task):
         {'field': 'state.pretrainedModel', 'payload': pretrainedModel},
         {'field': 'data.pretrainedModels', 'payload': pretrainedModels},
         {'field': 'data.pretrainedModelsInfo', 'payload': pretrainedModelsInfo},
+        {'field': 'data.taskTitle', 'payload': taskTitle},
         {'field': 'data.configLinks', 'payload': configLinks},
         {'field': 'data.modelColumns', 'payload': modelColumns},
         {'field': 'state.selectedModel', 'payload': selectedModel}
@@ -65,6 +68,7 @@ def init(data, state):
     state["disabledModels"] = True
     state["weightsPath"] = ""
     data["doneModels"] = False
+    data["taskTitle"] = "Object Detection"
     state["loadingModel"] = False
 
     # default hyperparams that may be reassigned from model default params

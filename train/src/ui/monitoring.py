@@ -147,9 +147,8 @@ def init_class_charts_series(state):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def train(api: sly.Api, task_id, context, state, app_logger):
-    init_class_charts_series(state)
-
     try:
+        init_class_charts_series(state)
         sly.json.dump_json_file(state, os.path.join(g.info_dir, "ui_state.json"))
         
         cfg = init_cfg(state, state["selectedClasses"], None)
@@ -200,11 +199,13 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
+
+        # stop application
+        g.my_app.stop()
         
     except Exception as e:
         g.api.app.set_field(task_id, "state.started", False)
         sly.logger.info(e)
         raise e  # app will handle this error and show modal window
 
-    # stop application
-    g.my_app.stop()
+    

@@ -19,8 +19,10 @@ def str_to_class(classname):
 def reload_task(task):
     if task == "detection":
         pretrainedModel = 'TOOD'
+        taskTitle = 'Object detection'
     elif task == "instance_segmentation":
         pretrainedModel = 'QueryInst'
+        taskTitle = 'Instance segmentation'
     pretrainedModels, metrics = get_pretrained_models(task, return_metrics=True)
     model_select_info = []
     for model_name, params in pretrainedModels.items():
@@ -41,6 +43,7 @@ def reload_task(task):
         {'field': 'state.pretrainedModel', 'payload': pretrainedModel},
         {'field': 'data.pretrainedModels', 'payload': pretrainedModels},
         {'field': 'data.pretrainedModelsInfo', 'payload': pretrainedModelsInfo},
+        {'field': 'data.taskTitle', 'payload': taskTitle},
         {'field': 'data.configLinks', 'payload': configLinks},
         {'field': 'data.modelColumns', 'payload': modelColumns},
         {'field': 'state.selectedModel', 'payload': selectedModel}
@@ -74,6 +77,7 @@ def init(data, state):
     state["weightsPath"] = ""
     state["loadingModel"] = False
     state["device"] = "cuda:0"
+    data["taskTitle"] = "Object Detection"
 
 
 def get_pretrained_models(task="detection", return_metrics=False):

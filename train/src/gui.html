@@ -17,16 +17,29 @@
         line-height: 17px;
         }
 
-        .beautiful-table { border-collapse: collapse; }
-        .beautiful-table tr:nth-child(2n) { background-color: #f6f8fa; }
-        .beautiful-table td, .beautiful-table th {
+        #mmdetection-train .beautiful-table { border-collapse: collapse; width: 100%; }
+        #mmdetection-train .beautiful-table tr:nth-child(2n) { background-color: #f6f8fa; }
+        #mmdetection-train .beautiful-table td, .beautiful-table th {
         border: 1px solid #dfe2e5;
         padding: 6px 13px;
         text-align: center;
         line-height: 20px;
         }
-        .beautiful-table.al td, .beautiful-table.al th {
+        #mmdetection-train .beautiful-table.al td, .beautiful-table.al th {
         text-align: left;
+        }
+        #mmdetection-train td.hid-text {
+            max-width: 0;
+            width: 30%;
+        }
+        #mmdetection-train td.hid-text .el-radio__label {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        #mmdetection-train td.hid-text{
+            text-align: left;
         }
 
         #mmdetection-train .el-tabs.el-tabs-cards { border-radius: 4px; box-shadow: none; }

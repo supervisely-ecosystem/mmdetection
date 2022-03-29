@@ -72,9 +72,19 @@ def init(project_info, project_meta: sly.ProjectMeta, data, state):
     state["collapsedSplits"] = True
     state["disabledSplits"] = True
 
+    init_progress("ConvertTrain", state)
+    init_progress("ConvertVal", state)
+
 
 def restart(data, state):
     data["doneSplits"] = False
+
+
+def init_progress(index, state):
+    state[f"progress{index}"] = False
+    state[f"progressCurrent{index}"] = 0
+    state[f"progressTotal{index}"] = None
+    state[f"progressPercent{index}"] = 0
 
 
 def refresh_table():
@@ -160,6 +170,9 @@ def get_train_val_splits_by_tag(train_tag_name, val_tag_name, untagged="ignore",
                 elif double_tagged == "train":
                     train_items.append(info)
                 elif double_tagged == "val":
+                    val_items.append(info)
+                elif double_tagged == "both":
+                    train_items.append(info)
                     val_items.append(info)
             elif ann.img_tags.get(train_tag_name) is not None:
                 train_items.append(info)
@@ -272,10 +285,11 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
         g.api.app.set_fields(g.task_id, fields)
     if train_set is not None:
         sly.logger.info("Converting train annotations to COCO format...")
-        save_set_to_coco_json(train_set_path, train_set, state["selectedClasses"], state["task"])
+        save_set_to_coco_json(train_set_path, train_set, state["selectedClasses"], state["task"], "Train")
     if val_set is not None:
         sly.logger.info("Converting val annotations to COCO format...")
-        save_set_to_coco_json(val_set_path, val_set, state["selectedClasses"], state["task"])
+        save_set_to_coco_json(val_set_path, val_set, state["selectedClasses"], state["task"], "Val")
+    g.api.app.set_field(g.task_id, "state.splitInProgress", False)
 
 
 def mask_to_image_size(label, existence_mask, img_size):
@@ -297,7 +311,12 @@ def binary_mask_to_rle(binary_mask):
     return rle
 
 
-def save_set_to_coco_json(save_path, items, selected_classes, task):
+def save_set_to_coco_json(save_path, items, selected_classes, task, split_name):
+    fields = [
+        {"field": f"state.progressConvert{split_name}", "payload": True},
+        {"field": f"state.progressTotalConvert{split_name}", "payload": len(items)},
+    ]
+    g.api.app.set_fields(g.task_id, fields)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     cats = [{"id": i, "name": k} for i, k in enumerate(selected_classes)]
@@ -305,8 +324,14 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
     annotations = []
     images = []
     obj_count = 0
-    # TODO: add progress to UI
+    log_step = 5
     for idx, item in enumerate(mmcv.track_iter_progress(items)):
+        if idx % log_step == 0:
+            fields = [
+                {"field": f"state.progressCurrentConvert{split_name}", "payload": idx},
+                {"field": f"state.progressPercentConvert{split_name}", "payload": int(idx / len(items) * 100)}
+            ]
+            g.api.app.set_fields(g.task_id, fields)
         filename = osp.join(item.dataset_name, "img", item.name)
         ann_path = osp.join(g.project_dir, item.dataset_name, "ann", f"{item.name}.json")
         ann = sly.Annotation.load_json_file(ann_path, g.project_meta)
@@ -335,7 +360,6 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
             if task == "detection":
                 data_anno["area"] = rect.height * rect.width
             elif task == "instance_segmentation":
-                # TODO: check that polygons work in practice
                 if isinstance(label.geometry, sly.Polygon):
                     label_render = np.zeros(ann.img_size, dtype=np.uint8)
                     label.geometry._draw_impl(label_render, 1)
@@ -355,6 +379,7 @@ def save_set_to_coco_json(save_path, items, selected_classes, task):
             obj_count += 1
         if seg_map is not None:
             cv2.imwrite(seg_path, seg_map)
+    g.api.app.set_field(g.task_id, f"state.progressConvert{split_name}", False)
 
     coco_format_json = dict(
         images=images,
