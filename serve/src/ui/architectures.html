@@ -81,6 +81,13 @@
         </el-select>
     </sly-field>
 
+    <div v-if="data.progressWeights.message" class="mt10">
+        <div style="color: #20a0ff">
+            {{data.progressWeights.message}}: {{data.progressWeights.current}} / {{data.progressWeights.total}}
+        </div>
+        <el-progress :percentage="data.progressWeights.percent"></el-progress>
+    </div>
+
     <el-button type="primary" class="regular mt15 mr15"
                @click="state.loadingModel = true; command('run')"
                :loading="state.loadingModel"
@@ -88,8 +95,6 @@
         Serve
     </el-button>
     
-    <span v-if="state.loadingModel && state.weightsInitialization == 'pretrained'">Downloading pretrained weights...</span>
-    <span v-if="state.loadingModel && state.weightsInitialization == 'custom'">Downloading custom weights...</span>
     <div v-if="state.deployed">
         <i class="zmdi zmdi-check-circle ml5 mr5 mt10" style="color: #13ce66"></i>
         <span v-if="state.weightsInitialization == 'custom'" style="color: #5a6772;">Custom model has been successfully deployed.</span>

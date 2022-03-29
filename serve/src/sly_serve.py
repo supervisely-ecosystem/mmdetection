@@ -95,25 +95,16 @@ def inference_batch_ids(api: sly.Api, task_id, context, state, app_logger):
         paths.append(os.path.join(g.my_app.data_dir, sly.rand_str(10) + info.name))
     api.image.download_paths(infos[0].dataset_id, ids, paths)
 
-    results = []
-    # TODO: change 
+    result_anns = inference_image_path(image_path=paths, project_meta=g.meta,
+                                            context=context, state=state, app_logger=app_logger)
     for image_path in paths:
-        ann_json = inference_image_path(image_path=image_path, project_meta=g.meta,
-                                              context=context, state=state, app_logger=app_logger)
-        results.append(ann_json)
         sly.fs.silent_remove(image_path)
 
     request_id = context["request_id"]
-    g.my_app.send_response(request_id, data=results)
+    g.my_app.send_response(request_id, data=result_anns)
 
 
-@sly.process_image_roi
-def inference_image_path(image_path, project_meta, context, state, app_logger):
-    app_logger.debug("Input path", extra={"path": image_path})
-
-    img = cv2.imread(image_path)
-    result = inference_detector(g.model, img)
-
+def postprocess_one_image_result(result, state, img_size):
     if isinstance(result, tuple):
         bbox_result, segm_result = result
         if isinstance(segm_result, tuple):
@@ -152,10 +143,34 @@ def inference_image_path(image_path, project_meta, context, state, app_logger):
                     mask_label = sly.Label(bitmap, obj_class, sly.TagCollection([conf_tag]))
                     labels.append(mask_label)
 
-    ann = sly.Annotation(img_size=img.shape[:2], labels=labels, )
+    ann = sly.Annotation(img_size=img_size, labels=labels, )
     ann_json = ann.to_json()
-
     return ann_json
+
+
+@sly.process_image_roi
+def inference_image_path(image_path, project_meta, context, state, app_logger):
+    app_logger.debug("Input path(s)", extra={"path(s)": image_path})
+    is_batch = False
+    input_img = None
+    if isinstance(image_path, (list, tuple)):
+        is_batch = True
+        input_img = []
+        for impath in image_path:
+            input_img.append(cv2.imread(impath))
+    else:
+        input_img = cv2.imread(image_path)
+    
+    results = inference_detector(g.model, input_img)
+
+    if is_batch:
+        result_anns = []
+        for idx, result in enumerate(results):
+            ann_json = postprocess_one_image_result(result, state, input_img[idx].shape[:2])
+            result_anns.append(ann_json)
+        return result_anns
+    else:
+        return postprocess_one_image_result(results, state, input_img.shape[:2])
 
 
 def main():

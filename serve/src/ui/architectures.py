@@ -2,6 +2,7 @@ import errno
 import os
 import sys
 import yaml
+import requests
 import pkg_resources
 import sly_globals as g
 import supervisely_lib as sly
@@ -10,6 +11,7 @@ from mmcv.cnn.utils import revert_sync_batchnorm
 from mmdet.models import build_detector
 from mmcv.runner import load_checkpoint
 from mmdet.datasets import *
+from supervisely.app.v1.widgets.progress_bar import ProgressBar
 
 
 def str_to_class(classname):
@@ -78,6 +80,9 @@ def init(data, state):
     state["loadingModel"] = False
     state["device"] = "cuda:0"
     data["taskTitle"] = "Object Detection"
+
+    ProgressBar(g.TASK_ID, g.api, "data.progressWeights", "Download weights", is_size=True,
+                                min_report_percent=5).init_data(data)
 
 
 def get_pretrained_models(task="detection", return_metrics=False):
@@ -167,11 +172,14 @@ def get_table_columns(metrics):
     return columns
 
 
-def download_sly_file(remote_path, local_path):
+def download_sly_file(remote_path, local_path, progress):
     file_info = g.api.file.get_info_by_path(g.TEAM_ID, remote_path)
     if file_info is None:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), remote_path)
-    g.api.file.download(g.TEAM_ID, remote_path, local_path, g.my_app.cache)
+    progress.set_total(file_info.sizeb)
+    g.api.file.download(g.TEAM_ID, remote_path, local_path, g.my_app.cache,
+                        progress.increment)
+    progress.reset_and_update()
 
     sly.logger.info(f"{remote_path} has been successfully downloaded",
                     extra={"weights": local_path})
@@ -188,6 +196,8 @@ def download_custom_config(state):
 
 
 def download_weights(state):
+    progress = ProgressBar(g.TASK_ID, g.api, "data.progressWeights", "Download weights", is_size=True,
+                                           min_report_percent=5)
     if state["weightsInitialization"] == "custom":
         weights_path_remote = state["weightsPath"]
         if not weights_path_remote.endswith(".pth"):
@@ -198,7 +208,7 @@ def download_weights(state):
         if sly.fs.file_exists(g.local_weights_path):
             os.remove(g.local_weights_path)
 
-        download_sly_file(weights_path_remote, g.local_weights_path)
+        download_sly_file(weights_path_remote, g.local_weights_path, progress)
         g.model_config_local_path = download_custom_config(state)
 
     else:
@@ -212,17 +222,22 @@ def download_weights(state):
             g.local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))
             g.model_config_local_path = os.path.join(g.root_source_path, config_file)
             if sly.fs.file_exists(g.local_weights_path) is False:
+                response = requests.head(weights_url, allow_redirects=True)
+                sizeb = int(response.headers.get('content-length', 0))
+                progress.set_total(sizeb)
                 os.makedirs(os.path.dirname(g.local_weights_path), exist_ok=True)
-                sly.fs.download(weights_url, g.local_weights_path, g.my_app.cache)
-
+                sly.fs.download(weights_url, g.local_weights_path, g.my_app.cache, progress.increment)
+                progress.reset_and_update()
             sly.logger.info("Pretrained weights has been successfully downloaded",
                             extra={"weights": g.local_weights_path})
 
 
 def init_model_and_cfg(state):
     g.cfg = Config.fromfile(g.model_config_local_path)
-    # TODO: check in init_detector
-    g.cfg.model.pretrained = None
+    if 'pretrained' in g.cfg.model:
+        g.cfg.model.pretrained = None
+    elif 'init_cfg' in g.cfg.model.backbone:
+        g.cfg.model.backbone.init_cfg = None
     g.cfg.model.train_cfg = None
     model = build_detector(g.cfg.model, test_cfg=g.cfg.get('test_cfg'))
     checkpoint = load_checkpoint(model, g.local_weights_path, map_location='cpu')
