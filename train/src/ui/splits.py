@@ -9,8 +9,6 @@ import cv2
 from itertools import groupby
 from collections import namedtuple
 import architectures
-from mmdet.datasets.pipelines.transforms import Pad
-from mmdet.models.roi_heads.mask_heads.fused_semantic_head import FusedSemanticHead
 
 ItemInfo = namedtuple('ItemInfo', ['dataset_name', 'name', 'img_path', 'ann_path'])
 train_set = None
@@ -261,6 +259,12 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             train_set, val_set = get_train_val_sets(state)
         # TODO: log info about ignored images
         verify_train_val_sets(train_set, val_set)
+        if train_set is not None:
+            sly.logger.info("Converting train annotations to COCO format...")
+            save_set_to_coco_json(train_set_path, train_set, state["selectedClasses"], state["task"], "Train")
+        if val_set is not None:
+            sly.logger.info("Converting val annotations to COCO format...")
+            save_set_to_coco_json(val_set_path, val_set, state["selectedClasses"], state["task"], "Val")
         step_done = True
     except Exception as e:
         train_set = None
@@ -283,14 +287,7 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
                 {"field": "state.activeStep", "payload": 6},
             ])
         g.api.app.set_fields(g.task_id, fields)
-    if train_set is not None:
-        sly.logger.info("Converting train annotations to COCO format...")
-        save_set_to_coco_json(train_set_path, train_set, state["selectedClasses"], state["task"], "Train")
-    if val_set is not None:
-        sly.logger.info("Converting val annotations to COCO format...")
-        save_set_to_coco_json(val_set_path, val_set, state["selectedClasses"], state["task"], "Val")
-    g.api.app.set_field(g.task_id, "state.splitInProgress", False)
-
+    
 
 def mask_to_image_size(label, existence_mask, img_size):
     mask_in_images_coordinates = np.zeros(img_size, dtype=bool)  # size is (h, w)

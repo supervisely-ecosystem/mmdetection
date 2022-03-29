@@ -61,7 +61,7 @@
                     </div>
                 </div>
             </div>
-            <span v-if="!state.deployed">Selected checkpoint: {{state.selectedModel[state.pretrainedModel]}}</span>
+            <div class="mt10" v-if="!state.deployed">Selected checkpoint: {{state.selectedModel[state.pretrainedModel]}}</div>
         </el-tab-pane>
         <el-tab-pane name="custom" :disabled="state.deployed">
             <el-radio slot="label" v-model="state.weightsInitialization" label="custom" :disabled="state.deployed">

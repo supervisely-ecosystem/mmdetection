@@ -261,7 +261,7 @@ def init_model(api: sly.Api, task_id, context, state, app_logger):
     download_weights(state)
     init_model_and_cfg(state)
     fields = [
-        {"field": "state.loading", "payload": False},
+        {"field": "state.loadingModel", "payload": False},
         {"field": "state.deployed", "payload": True},
     ]
     g.api.app.set_fields(g.TASK_ID, fields)

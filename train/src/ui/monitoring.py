@@ -4,7 +4,7 @@ import sly_globals as g
 import os
 from functools import partial
 from mmcv.cnn.utils import revert_sync_batchnorm
-from mmdet.apis import train_detector, inference_detector, show_result_pyplot
+from mmdet.apis import train_detector #, inference_detector, show_result_pyplot
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 from init_cfg import init_cfg
