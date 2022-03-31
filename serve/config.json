@@ -4,7 +4,7 @@
   "categories": [
     "open-mmlab",
     "neural network",
-    "detection",
+    "object detection",
     "instance segmentation"
   ],
   "description": "Deploy model as REST API service",
@@ -13,7 +13,7 @@
   "gui_template": "serve/src/gui.html",
   "task_location": "application_sessions",
   "need_gpu": true,
-  "icon": "",
+  "icon": "https://i.imgur.com/1RsNWVU.png",
   "isolate": true,
   "icon_cover": true,
   "session_tags": [
