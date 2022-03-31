@@ -14,7 +14,7 @@
   "task_location": "workspace_tasks",
   "need_gpu": true,
   "isolate": true,
-  "icon": "",
+  "icon": "https://i.imgur.com/C7TLPYB.png",
   "icon_cover": true,
   "context_menu": {
     "target": ["images_project"],
