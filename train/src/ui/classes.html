@@ -30,12 +30,6 @@
         <el-table-column prop="objectsCount" label="Objects count" sortable width="180"></el-table-column>
         <el-table-column prop="areaPercent" label="Area percent" sortable width="150"></el-table-column>
     </el-table>
-    
-    <sly-field title="Empty samples" description="Select action to do with dataset samples without any selected labels (more options coming soon).">
-        <el-select v-model="state.emptyAction" :disabled="true">
-            <el-option key="ignore" label="ignore" value="ignore"></el-option>
-        </el-select>
-    </sly-field>
 
     <div v-if="state.findingItemsToIgnore">
         <span style="color: #5a6772;">Filtering classes and geometry types in project...</span>
