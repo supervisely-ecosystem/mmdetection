@@ -4,9 +4,11 @@ import sly_globals as g
 import os
 import cv2
 import ui
+import yaml
 from mmdet.apis import inference_detector
 import sly_mse_loss
 import sly_semantic_head
+
 
 def send_error_data(func):
     @functools.wraps(func)
@@ -31,8 +33,12 @@ def get_output_classes_and_tags(api: sly.Api, task_id, context, state, app_logge
 @g.my_app.callback("get_custom_inference_settings")
 @sly.timeit
 def get_custom_inference_settings(api: sly.Api, task_id, context, state, app_logger):
+    settings_path = os.path.join(g.root_source_path, "serve/custom_settings.yml")
+    sly.logger.info(f"Custom inference settings path: {settings_path}")
+    with open(settings_path, 'r') as file:
+        default_settings_str = file.read()
     request_id = context["request_id"]
-    g.my_app.send_response(request_id, data={"settings": {}})
+    g.my_app.send_response(request_id, data={"settings": default_settings_str})
 
 
 @g.my_app.callback("get_session_info")

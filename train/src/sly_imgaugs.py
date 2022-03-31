@@ -26,8 +26,17 @@ def build_pipeline(aug_infos, random_order=False):
         params = aug_info["params"]
         for param_name, param_val in params.items():
             if isinstance(param_val, dict):
-                param_val["x"] = tuple(param_val["x"])
-                param_val["y"] = tuple(param_val["y"])
+                if "x" in param_val.keys() and "y" in param_val.keys():
+                    param_val["x"] = tuple(param_val["x"])
+                    param_val["y"] = tuple(param_val["y"])
+                else:
+                    for subparam_name, subparam_val in param_val.items():
+                        if isinstance(subparam_val, dict):
+                            if "x" in subparam_val.keys() and "y" in subparam_val.keys():
+                                subparam_val["x"] = tuple(subparam_val["x"])
+                                subparam_val["y"] = tuple(subparam_val["y"])
+                        elif isinstance(subparam_val, list):
+                            params[param_name][subparam_name] = tuple(subparam_val)
             elif isinstance(param_val, list):
                 params[param_name] = tuple(param_val)
 

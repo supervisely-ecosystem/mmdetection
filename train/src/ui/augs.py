@@ -79,7 +79,7 @@ def init(data, state):
     templates_info, name_to_py = get_aug_templates_list()
     data["augTemplates"] = templates_info
     data["augPythonCode"] = name_to_py
-    state["augsTemplateName"] = templates_info[3]["name"]
+    state["augsTemplateName"] = templates_info[2]["name"]
 
     data["pyViewOptions"] = {
         "mode": 'ace/mode/python',
@@ -171,7 +171,7 @@ def use_augs(api: sly.Api, task_id, context, state, app_logger):
 
     if state["useAugs"]:
         if augs_json_config is None:
-            augs_json_config = sly.json.load_json_file(os.path.join(g.root_source_dir, _templates[3]["config"]))
+            augs_json_config = sly.json.load_json_file(os.path.join(g.root_source_dir, _templates[2]["config"]))
         sly.json.dump_json_file(augs_json_config, augs_config_path)
 
         augs_py_path = os.path.join(g.my_app.data_dir, "augs_preview.py")

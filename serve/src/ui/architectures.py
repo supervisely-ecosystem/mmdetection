@@ -172,14 +172,18 @@ def get_table_columns(metrics):
     return columns
 
 
-def download_sly_file(remote_path, local_path, progress):
+def download_sly_file(remote_path, local_path, progress=None):
     file_info = g.api.file.get_info_by_path(g.TEAM_ID, remote_path)
     if file_info is None:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), remote_path)
-    progress.set_total(file_info.sizeb)
-    g.api.file.download(g.TEAM_ID, remote_path, local_path, g.my_app.cache,
-                        progress.increment)
-    progress.reset_and_update()
+    if progress is not None:
+        progress.set_total(file_info.sizeb)
+        progress_cb = progress.increment
+    else:
+        progress_cb = None
+    g.api.file.download(g.TEAM_ID, remote_path, local_path, g.my_app.cache, progress_cb)
+    if progress is not None:
+        progress.reset_and_update()
 
     sly.logger.info(f"{remote_path} has been successfully downloaded",
                     extra={"weights": local_path})
