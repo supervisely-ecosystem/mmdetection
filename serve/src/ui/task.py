@@ -3,7 +3,6 @@ import sly_globals as g
 import architectures
 
 def init(data, state):
-    # TODO: написать на что влияет выбор таски и в чем их отличия (для нубов)
     state["task"] = "detection"
     state["collapsedTask"] = False
     state["disabledTask"] = False

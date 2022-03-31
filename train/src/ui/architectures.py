@@ -166,29 +166,31 @@ def get_table_columns(metrics):
     return columns
 
 
-def download_sly_file(remote_path, local_path, progress):
+def download_sly_file(remote_path, local_path, progress = None):
     file_info = g.api.file.get_info_by_path(g.team_id, remote_path)
     if file_info is None:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), remote_path)
-    progress.set_total(file_info.sizeb)
-    g.api.file.download(g.team_id, remote_path, local_path, g.my_app.cache,
-                        progress.increment)
-    progress.reset_and_update()
+
+    if progress is not None:
+        progress.set_total(file_info.sizeb)
+        progress_cb = progress.increment
+    else:
+        progress_cb = None
+    g.api.file.download(g.team_id, remote_path, local_path, g.my_app.cache, progress_cb)
+    if progress is not None:
+        progress.reset_and_update()
 
     sly.logger.info(f"{remote_path} has been successfully downloaded",
                     extra={"weights": local_path})
 
 
 def download_custom_config(state):
-    progress = ProgressBar(g.task_id, g.api, "data.progress6", "Download config", is_size=True,
-                                           min_report_percent=5)
-
     weights_remote_dir = os.path.dirname(state["weightsPath"])
     model_config_local_path = os.path.join(g.my_app.data_dir, 'config.py')
 
     config_remote_dir = os.path.join(weights_remote_dir, f'config.py')
     if g.api.file.exists(g.team_id, config_remote_dir):
-        download_sly_file(config_remote_dir, model_config_local_path, progress)
+        download_sly_file(config_remote_dir, model_config_local_path)
     return model_config_local_path
 
 
@@ -235,8 +237,6 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
                 sly.logger.info("Pretrained weights has been successfully downloaded",
                                 extra={"weights": g.local_weights_path})
 
-
-
     except Exception as e:
         progress.reset_and_update()
         raise e
@@ -253,9 +253,14 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     if model_config_local_path is None:
         raise ValueError("Model config file not found!")
     cfg = Config.fromfile(model_config_local_path)
+
     if state["weightsInitialization"] != "custom":
         cfg.pretrained_model = state["pretrainedModel"]
         cfg.with_semantic_masks = with_semantic_masks
+    else:
+        if ("segm" in cfg.evaluation.metric and state["task"] != "instance_segmentation") or ("segm" not in cfg.evaluation.metric and state["task"] == "instance_segmentation"):
+            g.api.app.set_field(g.task_id, "state.loadingModel", False)
+            raise ValueError(f"Current model is not compatible with selected task '{state['task']}'. Please change task at previous step and try loading the weights again.")
 
     # print(f'Initial config:\n{cfg.pretty_text}') # TODO: debug
     params = init_dc.rewrite_default_cfg_args(cfg, state)

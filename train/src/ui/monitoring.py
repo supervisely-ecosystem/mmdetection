@@ -71,7 +71,8 @@ def init_charts(data, state):
     state["smoothing"] = 0.6
     # train charts
     state["chartLR"] = init_chart("LR", names=["lr"], xs = [[]], ys = [[]], smoothing=None, decimals=6, xdecimals=2)
-    state["chartLoss"] = init_chart("Loss", names=["total", "bbox", "class", "mask", "iou", "rpn_class", "rpn_bbox"], xs=[[]] * 7, ys=[[]] * 7, smoothing=state["smoothing"], decimals=6, xdecimals=2)
+    state["chartLossBasic"] = init_chart("Basic Losses", names=["total", "bbox", "class", "mask", "iou"], xs=[[]] * 5, ys=[[]] * 5, smoothing=state["smoothing"], decimals=6, xdecimals=2)
+    state["chartLossOther"] = init_chart("Other Losses", names=["semantic_seg", "rpn_class", "rpn_bbox", "other"], xs=[[]] * 4, ys=[[]] * 4, smoothing=state["smoothing"], decimals=6, xdecimals=2)
     
     # val charts
     state["chartMAP"] = init_chart("Val mAP", names=[], xs=[], ys=[], smoothing=state["smoothing"], decimals=6, xdecimals=2)
@@ -88,7 +89,8 @@ def init_charts(data, state):
 @g.my_app.ignore_errors_and_show_dialog_window()
 def change_smoothing(api: sly.Api, task_id, context, state, app_logger):
     fields = [
-        {"field": "state.chartLoss.options.smoothingWeight", "payload": state["smoothing"]},
+        {"field": "state.chartLossBasic.options.smoothingWeight", "payload": state["smoothing"]},
+        {"field": "state.chartLossOther.options.smoothingWeight", "payload": state["smoothing"]},
         {"field": "state.chartMAP.options.smoothingWeight", "payload": state["smoothing"]},
         {"field": "state.chartBoxClassAP.options.smoothingWeight", "payload": state["smoothing"]},
         {"field": "state.chartMaskClassAP.options.smoothingWeight", "payload": state["smoothing"]},

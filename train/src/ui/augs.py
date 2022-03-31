@@ -3,7 +3,7 @@ import supervisely as sly
 import sly_globals as g
 from supervisely.app.v1.widgets.compare_gallery import CompareGallery
 import input_project
-from sly_imgaugs import build_pipeline
+from sly_imgaugs import build_pipeline, pipeline_to_python
 
 _templates = [
     {
@@ -46,7 +46,7 @@ augs_config_path = os.path.join(g.my_app.data_dir, "augs_config.json")
 def _load_template(json_path):
     config = sly.json.load_json_file(json_path)
     pipeline = build_pipeline(config["pipeline"], random_order=config["random_order"])  # to validate
-    py_code = sly.imgaug_utils.pipeline_to_python(config["pipeline"], config["random_order"])
+    py_code = pipeline_to_python(config["pipeline"], config["random_order"])
 
     return pipeline, py_code, config
 
@@ -79,7 +79,11 @@ def init(data, state):
     templates_info, name_to_py = get_aug_templates_list()
     data["augTemplates"] = templates_info
     data["augPythonCode"] = name_to_py
-    state["augsTemplateName"] = templates_info[3]["name"]
+    state["augsTemplateName"] = templates_info[2]["name"]
+    _, py_code, config = get_template_by_name(state["augsTemplateName"])
+    global augs_json_config, augs_py_preview
+    augs_json_config = config
+    augs_py_preview = py_code
 
     data["pyViewOptions"] = {
         "mode": 'ace/mode/python',
@@ -104,16 +108,6 @@ def init(data, state):
 
 def restart(data, state):
     data["doneAugs"] = False
-
-
-@g.my_app.callback("select_template")
-@sly.timeit
-@g.my_app.ignore_errors_and_show_dialog_window()
-def select_template(api: sly.Api, task_id, context, state, app_logger):
-    _, py_code, config = get_template_by_name(state["augsTemplateName"])
-    global augs_json_config, augs_py_preview
-    augs_json_config = config
-    augs_py_preview = py_code
 
 
 @g.my_app.callback("load_existing_pipeline")
@@ -170,13 +164,11 @@ def use_augs(api: sly.Api, task_id, context, state, app_logger):
     global augs_py_preview
 
     if state["useAugs"]:
-        if augs_json_config is None:
-            augs_json_config = sly.json.load_json_file(os.path.join(g.root_source_dir, _templates[3]["config"]))
-        sly.json.dump_json_file(augs_json_config, augs_config_path)
-
+        _, py_code, config = get_template_by_name(state["augsTemplateName"])
+        augs_json_config = config
+        augs_py_preview = py_code
         augs_py_path = os.path.join(g.my_app.data_dir, "augs_preview.py")
-        if augs_py_preview is None:
-            augs_py_preview = sly.imgaug_utils.pipeline_to_python(augs_json_config["pipeline"], augs_json_config["random_order"])
+        sly.json.dump_json_file(augs_json_config, augs_config_path)
         with open(augs_py_path, 'w') as f:
             f.write(augs_py_preview)
     else:

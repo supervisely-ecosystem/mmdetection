@@ -64,6 +64,7 @@
                     </div>
                 </div>
             </div>
+            <div class="mt10" v-if="!data.doneModels" >Selected checkpoint: {{state.selectedModel[state.pretrainedModel]}}</div>
         </el-tab-pane>
         <el-tab-pane name="custom" :disabled="data.doneModels">
             <el-radio slot="label" v-model="state.weightsInitialization" label="custom" :disabled="data.doneModels">
@@ -82,7 +83,6 @@
                v-if="!data.doneModels">
         Select model
     </el-button>
-    <span v-if="!data.doneModels" >Selected checkpoint: {{state.selectedModel[state.pretrainedModel]}}</span>
     <div v-if="data.progress6.message" class="mt10">
         <div style="color: #20a0ff">
             {{data.progress6.message}}: {{data.progress6.current}} / {{data.progress6.total}}

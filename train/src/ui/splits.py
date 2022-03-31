@@ -257,7 +257,6 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             train_set, val_set, ignored_untagged_cnt, ignored_double_tagged_cnt = get_train_val_sets(state)
         else:
             train_set, val_set = get_train_val_sets(state)
-        # TODO: log info about ignored images
         verify_train_val_sets(train_set, val_set)
         if train_set is not None:
             sly.logger.info("Converting train annotations to COCO format...")
