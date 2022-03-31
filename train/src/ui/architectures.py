@@ -11,7 +11,7 @@ from supervisely.app.v1.widgets.progress_bar import ProgressBar
 
 cfg = None
 
-def reload_task(task):
+def reload_models(task):
     if task == "detection":
         pretrainedModel = 'TOOD'
         taskTitle = 'Object detection'

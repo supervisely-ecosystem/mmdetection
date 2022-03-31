@@ -136,6 +136,12 @@
         </el-tab-pane>
     </el-tabs>
 
+    <sly-field title="Images without labels" description="Select action to do with images without any selected labels (more options coming soon).">
+        <el-select v-model="state.emptyAction" :disabled="true">
+            <el-option key="ignore" label="ignore" value="ignore"></el-option>
+        </el-select>
+    </sly-field>
+
     <div v-if="state.progressConvertTrain" class="mt10">
         <div style="color: #20a0ff">
             Converting supervisely train annotations to COCO format: {{state.progressCurrentConvertTrain}} / {{state.progressTotalConvertTrain}}

@@ -69,6 +69,7 @@ def init(project_info, project_meta: sly.ProjectMeta, data, state):
     data["doneSplits"] = False
     state["collapsedSplits"] = True
     state["disabledSplits"] = True
+    state["emptyAction"] = "ignore"
 
     init_progress("ConvertTrain", state)
     init_progress("ConvertVal", state)

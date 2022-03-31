@@ -1,6 +1,7 @@
 import supervisely as sly
 import sly_globals as g
 import architectures
+import classes 
 
 def init(data, state):
     state["task"] = "detection"
@@ -40,7 +41,8 @@ def select_task(api: sly.Api, task_id, context, state, app_logger):
         check_labels(state["task"])
     except ValueError as e:
         return
-    architectures.reload_task(state["task"])
+    classes.reload_classes(state["task"])
+    architectures.reload_models(state["task"])
     fields = [
         {"field": "state.collapsedModels", "payload": False},
         {"field": "state.disabledModels", "payload": False},
