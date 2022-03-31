@@ -48,9 +48,12 @@ class SuperviselyLoggerHook(TextLoggerHook):
         
         if log_dict['mode'] == 'train':
             epoch_float = float(self.progress_epoch.current) + float(self.progress_iter.current) / float(self.progress_iter.total)
-            loss_names = ["loss_bbox", "loss_cls", "loss_mask", "loss_iou", "loss_rpn_cls", "loss_rpn_bbox"]
-        
-            for loss_name in loss_names:
+            loss_names = ["loss_bbox", "loss_cls", "loss_mask", "loss_iou", "loss_rpn_cls", "loss_rpn_bbox", "loss_semantic_seg", "loss_other"]
+            basic_loss_names = loss_names[:4]
+            other_loss_names = loss_names[4:]
+            
+            # aggregate losses
+            for loss_name in loss_names[:-1]:
                 if loss_name in log_dict.keys():
                     continue
                 losses = []
@@ -59,16 +62,31 @@ class SuperviselyLoggerHook(TextLoggerHook):
                         losses.append(val)
                 if losses:
                     log_dict[loss_name] = sum(losses)
+            
+            # aggregate other losses
+            other_losses = []
+            for key, val in log_dict.items():
+                losses = []
+                for loss_name in loss_names[:-1]:
+                    if key.endswith(loss_name):
+                        losses.append(key)
+                if not losses and "loss" in key and key != "loss":
+                    other_losses.append(val)
+            if other_losses:
+                log_dict["loss_other"] = sum(other_losses)
 
             fields.extend([
                 {"field": "state.chartLR.series[0].data", "payload": [[epoch_float, round(log_dict["lr"], 6)]], "append": True},
-                {"field": "state.chartLoss.series[0].data", "payload": [[epoch_float, round(log_dict["loss"], 6)]], "append": True},
+                {"field": "state.chartLossBasic.series[0].data", "payload": [[epoch_float, round(log_dict["loss"], 6)]], "append": True},
             ])
-            for idx, loss_name in enumerate(loss_names):
+            for idx, loss_name in enumerate(basic_loss_names):
                 if loss_name in log_dict.keys():
-                    fields.append({"field": f"state.chartLoss.series[{idx + 1}].data", "payload": [[epoch_float, round(log_dict[loss_name], 6)]], "append": True})
+                    fields.append({"field": f"state.chartLossBasic.series[{idx + 1}].data", "payload": [[epoch_float, round(log_dict[loss_name], 6)]], "append": True})
 
-            
+            for idx, loss_name in enumerate(other_loss_names):
+                if loss_name in log_dict.keys():
+                    fields.append({"field": f"state.chartLossOther.series[{idx}].data", "payload": [[epoch_float, round(log_dict[loss_name], 6)]], "append": True})
+
             if 'time' in log_dict.keys():
                 fields.extend([
                     {"field": "state.chartTime.series[0].data", "payload": [[epoch_float, log_dict["time"]]],
