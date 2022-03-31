@@ -1,7 +1,7 @@
 
 <div align="center" markdown>
 
-<img src="https://i.imgur.com/scv9x1g.jpg"/>  
+<img src=""/>  
 
 # Train MMDetection
 
@@ -116,22 +116,22 @@ Application key points:
 
 **Step 1.** Add [Train MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/train) to your team
 
-<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="https://i.imgur.com/e2r6ccw.png" width="350px" style='padding-bottom: 10px'/>
+<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="https://i.imgur.com/92PoYV7.png" width="350px" style='padding-bottom: 10px'/>
 
 **Step 2.** Run app from context menu of the project with annotations (`polygon` and `bitmap` for instance segmentation or `rectangle` for object detection) [(example)](https://ecosystem.supervise.ly/projects/lemons-annotated)
 
-<img src="https://i.imgur.com/XczjaNy.png" width="100%" style='padding-top: 10px'>  
+<img src="https://i.imgur.com/WPA54yW.png" width="100%" style='padding-top: 10px'>  
 
 
 # Demo
 
 <a data-key="sly-embeded-video-link" href="https://youtu.be/Uzpp7_xhbPQ" data-video-code="Uzpp7_xhbPQ">
-    <img src="https://imgur.com/2j4lNti.png" alt="SLY_EMBEDED_VIDEO_LINK"  style="max-width:80%;">
+    <img src="" alt="SLY_EMBEDED_VIDEO_LINK"  style="max-width:80%;">
 </a>
 
 # Screenshot
 
-<img src="https://i.imgur.com/zRHgnfQ.png" width="100%" style='padding-top: 10px'>
+<img src="" width="100%" style='padding-top: 10px'>
 
 # Acknowledgment
 
