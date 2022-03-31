@@ -6,14 +6,14 @@
           ref="step2"
 >
     <sly-field title="INFO: How to select task?"
-        description="MMDetection provides tool for training models to solve different deep learning problems. Currently Supervisely supports two kind of tasks: object detection and instance segmentation. If you are interested in using other MMDetection functionality such as Panoptic Segmentation, Contrastive Learning or Knowledge Distillation, write us and we will try to find ways to help you! At this step you should select problem that you want to solve. Of course, you should have appropriate data with markup for this task. Outputs of object detection models - only bounding boxes with confidence. Outputs of instance segmentation models in addition contain object masks. Selected task at this step defines models list to choose. If you want to train model based on already trained custom model, choose the appropriate task."
+        description="MMDetection provides tool for training models to solve different deep learning problems. Currently Supervisely supports two kind of tasks: object detection and instance segmentation. Panoptic Segmentation, Contrastive Learning or Knowledge Distillation tasks from MMDetection are not supported now. At this step you should select problem that you want to solve. Of course, you should have appropriate data with markup for this task. Available labels: bitmap masks or polygons for instance segmentation (polygons will be convrted to bitmaps) and any objects except points for object detection (bounding box will be calculated automatically). Outputs of object detection models - only bounding boxes with confidence. Outputs of instance segmentation models in addition contain object masks. Selected task at this step defines models list to choose. If you want to train model based on already trained custom model, choose the appropriate task."
         style="padding-top: 0; padding-bottom: 0; margin: 10px 5px;">
 
         <sly-icon slot="icon" :options="{ color: '#cece66', bgColor: '#f7f7eb', rounded: false }">
             <i class="zmdi zmdi-info"></i>
         </sly-icon>
     </sly-field>
-    <sly-field title="Select DL problem to solve">
+    <sly-field title="Select deep learning problem to solve">
         <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">Object detection</el-radio></div>
         <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">Instance segmentation</el-radio></div>
     </sly-field>
