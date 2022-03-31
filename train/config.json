@@ -8,7 +8,7 @@
     "instance segmentation"
   ],
   "description": "Dashboard to configure, start and monitor training",
-  "docker_image": "supervisely/mmdet:1.0.1",
+  "docker_image": "supervisely/mmdet:1.0.2",
   "main_script": "train/src/main.py",
   "gui_template": "train/src/gui.html",
   "task_location": "workspace_tasks",
