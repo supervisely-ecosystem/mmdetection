@@ -126,6 +126,33 @@ def load_existing_pipeline(api: sly.Api, task_id, context, state, app_logger):
     api.task.set_field(task_id, "data.customAugsPy", py_code)
 
 
+def convert_ann_to_bboxes(ann):
+    meta = g.project_meta.clone()
+    for obj_class in meta.obj_classes:
+        if obj_class.geometry_type == "rectangle":
+            continue
+        class_obj = sly.ObjClass(obj_class.name, sly.Rectangle, obj_class.color)
+        meta = meta.delete_obj_class(obj_class.name)
+        meta = meta.add_obj_class(class_obj)
+    new_ann_json = {
+        "size": {
+            "height": ann.img_size[0],
+            "width": ann.img_size[1]
+        },
+        "tags": [],
+        "objects": []
+    }
+    new_ann = sly.Annotation.from_json(new_ann_json, meta)
+    for label in ann.labels:
+        if label.geometry.geometry_name == "rectangle":
+            new_ann = ann.add_label(label)
+            continue
+        class_obj = sly.ObjClass(label.obj_class.name, sly.Rectangle, label.obj_class.color)
+        updated_label = label.convert(class_obj)[0]
+        ann = ann.delete_label(label)
+        new_ann = ann.add_label(updated_label)
+    return new_ann, meta
+
 @g.my_app.callback("preview_augs")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
@@ -143,9 +170,14 @@ def preview_augs(api: sly.Api, task_id, context, state, app_logger):
 
     img = api.image.download_np(image_info.id)
     ann_json = api.annotation.download(image_info.id).annotation
+
     ann = sly.Annotation.from_json(ann_json, g.project_meta)
+    meta = g.project_meta
+    if state["task"] == "detection":
+        ann, meta = convert_ann_to_bboxes(ann)
+
     gallery.set_left("before", image_info.full_storage_url, ann)
-    _, res_img, res_ann = sly.imgaug_utils.apply(augs_ppl, g.project_meta, img, ann)
+    _, res_img, res_ann = sly.imgaug_utils.apply(augs_ppl, meta, img, ann)
     local_image_path = os.path.join(g.my_app.data_dir, "preview_augs.jpg")
     sly.image.write(local_image_path, res_img)
     if api.file.exists(g.team_id, remote_preview_path):

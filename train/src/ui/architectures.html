@@ -47,7 +47,7 @@
                                                 <el-radio
                                                         class="radio" v-model="state.selectedModel[state.pretrainedModel]"
                                                         :label="model[column.key]"
-                                                        :disabled="data.doneModels">
+                                                        :disabled="data.doneModels || state.loadingModel">
                                                     
                                                     <span> {{model[column.key]}} </span>
                                                 </el-radio>

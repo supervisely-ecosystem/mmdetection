@@ -321,8 +321,10 @@ def save_set_to_coco_json(save_path, items, selected_classes, task, split_name):
     annotations = []
     images = []
     obj_count = 0
-    log_step = 5
-    for idx, item in enumerate(mmcv.track_iter_progress(items)):
+    log_step = 100
+    if len(items) < log_step:
+        log_step = len(items) // 10 + 1
+    for idx, item in enumerate(items):
         if idx % log_step == 0:
             fields = [
                 {"field": f"state.progressCurrentConvert{split_name}", "payload": idx},

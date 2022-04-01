@@ -14,8 +14,8 @@
         </sly-icon>
     </sly-field>
     <sly-field title="Select deep learning problem to solve">
-        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="detection">Object detection</el-radio></div>
-        <div><el-radio v-model="state.task" :disabled="data.doneTask" label="instance_segmentation">Instance segmentation</el-radio></div>
+        <div><el-radio v-model="state.task" :disabled="data.doneTask || state.modelsUpdating" label="detection">Object detection</el-radio></div>
+        <div><el-radio v-model="state.task" :disabled="data.doneTask || state.modelsUpdating" label="instance_segmentation">Instance segmentation</el-radio></div>
     </sly-field>
 
     <div v-if="state.modelsUpdating">
