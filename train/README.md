@@ -131,7 +131,7 @@ Application key points:
 
 # Screenshot
 
-<img src="" width="100%" style='padding-top: 10px'>
+<img src="https://i.imgur.com/zwKhI6w.png" width="100%" style='padding-top: 10px'>
 
 # Acknowledgment
 
