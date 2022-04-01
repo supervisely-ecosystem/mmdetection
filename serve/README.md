@@ -1,6 +1,6 @@
 
 <div align="center" markdown>
-<img src=""/>  
+<img src="https://i.imgur.com/GRGQrAy.png"/>  
 
 # Serve MMDetection
 
@@ -20,6 +20,7 @@
 [![runs](https://app.supervise.ly/public/api/v3/ecosystem.counters?repo=supervisely-ecosystem/mmdetection/serve&counter=runs&label=runs&123)](https://supervise.ly)
 
 </div>
+
 
 # Overview
 
@@ -55,6 +56,9 @@ Application key points:
 **Custom models**
 
 Model and directory structure must be acquired via [Train MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/train) app or manually created with the same directory structure
+
+<img src="https://github.com/supervisely-ecosystem/mmdetection/releases/download/v0.0.1/copy-path-min.gif"/>  
+
 
 # Common apps
 
