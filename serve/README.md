@@ -45,7 +45,7 @@ Application key points:
 
 **Pretrained models**
 
-**Step 1.** Select Data Learning problem to solve
+**Step 1.** Select Deep Learning problem to solve
 
 <img src="https://i.imgur.com/fKoqM3Q.png" width="80%">  
 
