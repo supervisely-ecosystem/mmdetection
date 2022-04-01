@@ -125,8 +125,8 @@ Application key points:
 
 # Demo
 
-<a data-key="sly-embeded-video-link" href="https://youtu.be/Uzpp7_xhbPQ" data-video-code="Uzpp7_xhbPQ">
-    <img src="" alt="SLY_EMBEDED_VIDEO_LINK"  style="max-width:80%;">
+<a data-key="sly-embeded-video-link" href="https://youtu.be/aYVutH46-Y4" data-video-code="aYVutH46-Y4">
+    <img src="https://i.imgur.com/ChgrlXV.png" alt="SLY_EMBEDED_VIDEO_LINK"  style="max-width:80%;">
 </a>
 
 # Screenshot
