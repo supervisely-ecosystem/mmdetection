@@ -38,6 +38,7 @@ Application key points:
 <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/serve" src="https://i.imgur.com/R5nCKt2.png" width="350px" style='padding-bottom: 10px'/>
 
 **Step 2.** Run the application from Plugins & Apps page
+
 <img src="https://i.imgur.com/2FvYoTy.png" width="80%" style='padding-top: 10px'>  
 
 # How to Use
@@ -45,12 +46,15 @@ Application key points:
 **Pretrained models**
 
 **Step 1.** Select Data Learning problem to solve
+
 <img src="https://i.imgur.com/fKoqM3Q.png" width="80%">  
 
 **Step 2.** Select architecture, pretrained model, deploying device and press the **Serve** button
+
 <img src="https://i.imgur.com/PFmbbtp.png" width="80%">  
 
 **Step 3.** Wait for the model to deploy
+
 <img src="https://i.imgur.com/1H2Uwsd.png" width="80%">
 
 **Custom models**
