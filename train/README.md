@@ -34,11 +34,10 @@ Application key points:
 - Select classes for training
 - Define augmentations
 - Tune hyperparameters
-- Monitor Metrics charts
+- Monitor Metric charts
 - Save training artifacts to Team Files
-- Supports only Bitmap and Polygons
 
-**Object Detection and Instance Segmentation MMDetection models are supported [(model zoo)](https://github.com/open-mmlab/mmdetection/blob/master/docs/en/model_zoo.md)**
+**Supported MMDetection models [(model zoo)](https://github.com/open-mmlab/mmdetection/blob/master/docs/en/model_zoo.md):**
 
 <div align="center">
   <b>Architectures</b>
