@@ -1,6 +1,6 @@
 
 <div align="center" markdown>
-<img src="https://i.imgur.com/wQEmCI5.jpg"/>  
+<img src="https://i.imgur.com/GRGQrAy.png"/>  
 
 # Serve MMDetection
 
@@ -21,6 +21,7 @@
 
 </div>
 
+
 # Overview
 
 Serve MMDetection model as Supervisely Application. MMDetection is an open source toolbox based on PyTorch. Learn more about MMDetection and available models [here](https://github.com/open-mmlab/mmdetection).
@@ -33,18 +34,34 @@ Application key points:
 # How to Run
 
 **Step 1.** Add [Serve MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/serve) to your team
-<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/serve" src="https://i.imgur.com/e1SsMJh.png" width="350px" style='padding-bottom: 10px'/>
+
+<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/serve" src="https://i.imgur.com/R5nCKt2.png" width="350px" style='padding-bottom: 10px'/>
 
 **Step 2.** Run the application from Plugins & Apps page
-<img src="https://i.imgur.com/1uAKeeE.png" width="80%" style='padding-top: 10px'>  
+
+<img src="https://i.imgur.com/2FvYoTy.png" width="80%" style='padding-top: 10px'>  
 
 # How to Use
 
-**Step 1.** Select architecture, pretrained model, deploying device and press the **Serve** button
-<img src="https://i.imgur.com/yEmmskW.png" width="80%">  
+**Pretrained models**
 
-**Step 2.** Wait for the model to deploy
-<img src="https://i.imgur.com/FZeg5gT.png" width="80%">  
+**Step 1.** Select Deep Learning problem to solve
+
+<img src="https://i.imgur.com/fKoqM3Q.png" width="80%">  
+
+**Step 2.** Select architecture, pretrained model, deploying device and press the **Serve** button
+
+<img src="https://i.imgur.com/PFmbbtp.png" width="80%">  
+
+**Step 3.** Wait for the model to deploy
+
+<img src="https://i.imgur.com/1H2Uwsd.png" width="80%">
+
+**Custom models**
+
+Model and directory structure must be acquired via [Train MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/train) app or manually created with the same directory structure
+
+<img src="https://github.com/supervisely-ecosystem/mmdetection/releases/download/v0.0.1/copy-path-min.gif"/>  
 
 
 # Common apps
@@ -54,7 +71,7 @@ You can use served model in next Supervisely Applications ⬇️
 
 - [Train MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/train) - app allows to play with different inference options, monitor metrics charts in real time, and save training artifacts to Team Files.
    
-    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="https://i.imgur.com/e2r6ccw.png" width="350px"/>
+    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="https://i.imgur.com/92PoYV7.png" width="200px"/>
     
 - [Apply NN to images project ](https://ecosystem.supervise.ly/apps/supervisely-ecosystem%252Fnn-image-labeling%252Fproject-dataset) - app allows to play with different inference options and visualize predictions in real time.  Once you choose inference settings you can apply model to all images in your project to visually analyse predictions and perform automatic data pre-labeling.   
    
