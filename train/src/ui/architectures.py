@@ -113,6 +113,7 @@ def get_pretrained_models(task="detection", return_metrics=False):
                             checkpoint_info["semantic"] = True
                     
                 checkpoint_info["name"] = model["Name"]
+                checkpoint_info["method"] = model["In Collection"]
                 try:
                     checkpoint_info["inference_time"] = model["Metadata"]["inference time (ms/im)"][0]["value"]
                 except KeyError:
@@ -154,15 +155,16 @@ def get_pretrained_models(task="detection", return_metrics=False):
 
 def get_table_columns(metrics):
     columns = [
-        {"key": "name", "title": " ", "subtitle": None},
+        {"key": "name", "title": "Checkpoint", "subtitle": None},
+        {"key": "method", "title": "Method", "subtitle": None},
         {"key": "dataset", "title": "Dataset", "subtitle": None},
         {"key": "inference_time", "title": "Inference time", "subtitle": "(ms/im)"},
         {"key": "resolution", "title": "Input size", "subtitle": "(H, W)"},
         {"key": "epochs", "title": "Epochs", "subtitle": None},
-        {"key": "training_memory", "title": "Training memory", "subtitle": "GB"},
+        {"key": "training_memory", "title": "Memory", "subtitle": "Training (GB)"},
     ]
     for metric in metrics:
-        columns.append({"key": metric, "title": f"{metric} score", "subtitle": None})
+        columns.append({"key": metric, "title": metric, "subtitle": "score"})
     return columns
 
 

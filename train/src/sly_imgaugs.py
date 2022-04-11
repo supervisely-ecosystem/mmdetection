@@ -94,10 +94,10 @@ class SlyImgAugs(object):
             self.augs = build_pipeline(config["pipeline"], random_order=config["random_order"])
 
     def apply_to_image_and_bbox(self, augs, img, bbox):
-        boxes = [BoundingBox(box[0], box[1], box[0] + box[2], box[1] + box[3]) for box in bbox]
+        boxes = [BoundingBox(box[0], box[1], box[2], box[3]) for box in bbox]
         boxes = BoundingBoxesOnImage(boxes, shape=img.shape[:2])
         res_img, res_boxes, _ = sly.imgaug_utils._apply(augs, img, boxes=boxes)
-        res_boxes = np.array([[res_box.x1, res_box.y1, res_box.x2 - res_box.x1, res_box.y2 - res_box.y1] for res_box in res_boxes], dtype=np.float32)
+        res_boxes = np.array([[res_box.x1, res_box.y1, res_box.x2, res_box.y2] for res_box in res_boxes], dtype=np.float32)
 
         return res_img, res_boxes
 
