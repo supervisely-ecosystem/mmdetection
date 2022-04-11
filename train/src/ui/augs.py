@@ -3,7 +3,6 @@ import supervisely as sly
 import sly_globals as g
 from supervisely.app.v1.widgets.compare_gallery import CompareGallery
 import input_project
-from sly_imgaugs import build_pipeline, pipeline_to_python
 
 _templates = [
     {
@@ -45,8 +44,8 @@ augs_config_path = os.path.join(g.my_app.data_dir, "augs_config.json")
 
 def _load_template(json_path):
     config = sly.json.load_json_file(json_path)
-    pipeline = build_pipeline(config["pipeline"], random_order=config["random_order"])  # to validate
-    py_code = pipeline_to_python(config["pipeline"], config["random_order"])
+    pipeline = sly.imgaug_utils.build_pipeline(config["pipeline"], random_order=config["random_order"])  # to validate
+    py_code = sly.imgaug_utils.pipeline_to_python(config["pipeline"], config["random_order"])
 
     return pipeline, py_code, config
 
@@ -149,8 +148,7 @@ def convert_ann_to_bboxes(ann):
             continue
         class_obj = sly.ObjClass(label.obj_class.name, sly.Rectangle, label.obj_class.color)
         updated_label = label.convert(class_obj)[0]
-        ann = ann.delete_label(label)
-        new_ann = ann.add_label(updated_label)
+        new_ann = new_ann.add_label(updated_label)
     return new_ann, meta
 
 @g.my_app.callback("preview_augs")
