@@ -2,10 +2,14 @@
   "name": "Train MMDetection",
   "type": "app",
   "categories": [
-    "open-mmlab",
     "neural network",
+    "images",
+    "videos",
     "object detection",
-    "instance segmentation"
+    "instance segmentation",
+    "detection & tracking",
+    "segmentation & tracking",
+    "train"
   ],
   "description": "Dashboard to configure, start and monitor training",
   "docker_image": "supervisely/mmdet:1.0.3",
@@ -17,8 +21,11 @@
   "icon": "https://i.imgur.com/C7TLPYB.png",
   "icon_cover": true,
   "context_menu": {
-    "target": ["images_project"],
+    "target": [
+      "images_project"
+    ],
     "context_root": "Neural Networks",
     "context_category": "MM Detection"
-  }
+  },
+  "poster": "https://i.imgur.com/idLERD3.png"
 }
