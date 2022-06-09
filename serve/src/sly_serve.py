@@ -9,6 +9,10 @@ from mmdet.apis import inference_detector
 import sly_mse_loss
 import sly_semantic_head
 
+import traceback
+import sly_apply_nn_to_video as nn_to_video
+
+
 
 def send_error_data(func):
     @functools.wraps(func)
@@ -17,8 +21,14 @@ def send_error_data(func):
         try:
             value = func(*args, **kwargs)
         except Exception as e:
+            sly.logger.error(f"Error while processing data: {e}")
             request_id = kwargs["context"]["request_id"]
-            g.my_app.send_response(request_id, data={"error": repr(e)})
+            # raise e
+            try:
+                g.my_app.send_response(request_id, data={"error": repr(e)})
+                print(traceback.format_exc())
+            except Exception as ex:
+                sly.logger.exception(f"Cannot send error response: {ex}")
         return value
     return wrapper
 
@@ -47,10 +57,12 @@ def get_custom_inference_settings(api: sly.Api, task_id, context, state, app_log
 def get_session_info(api: sly.Api, task_id, context, state, app_logger):
     info = {
         "app": "MM Detection Serve",
+        "type": "Object Detection",
         "device": g.device,
         "session_id": task_id,
         "classes_count": len(g.meta.obj_classes),
         "tags_count": len(g.meta.tag_metas),
+        "videos_support": True
     }
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data=info)
@@ -108,6 +120,29 @@ def inference_batch_ids(api: sly.Api, task_id, context, state, app_logger):
 
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data=result_anns)
+
+
+@g.my_app.callback("inference_video_id")
+@sly.timeit
+@send_error_data
+def inference_video_id(api: sly.Api, task_id, context, state, app_logger):
+    video_info = g.api.video.get_info_by_id(state['videoId'])
+
+    sly.logger.info(f'inference {video_info.id=} started')
+    inf_video_interface = nn_to_video.InferenceVideoInterface(api=g.api,
+                                                              start_frame_index=state.get('startFrameIndex', 0),
+                                                              frames_count=state.get('framesCount', video_info.frames_count - 1),
+                                                              frames_direction=state.get('framesDirection', 'forward'),
+                                                              video_info=video_info,
+                                                              imgs_dir=os.path.join(g.my_app.data_dir, 'videoInference'))
+
+    inf_video_interface.download_frames()
+
+    annotations = inference_image_path(image_path=inf_video_interface.images_paths, project_meta=g.meta,
+                                       context=context, state=state, app_logger=app_logger)
+
+    g.my_app.send_response(context["request_id"], data={'ann': annotations})
+    sly.logger.info(f'inference {video_info.id=} done, {len(annotations)} annotations created')
 
 
 def postprocess_one_image_result(result, state, img_size):
