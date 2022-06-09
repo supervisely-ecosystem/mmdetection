@@ -57,7 +57,7 @@ def get_custom_inference_settings(api: sly.Api, task_id, context, state, app_log
 def get_session_info(api: sly.Api, task_id, context, state, app_logger):
     info = {
         "app": "MM Detection Serve",
-        "type": "Object Detection",
+        "type": g.model_type,
         "device": g.device,
         "session_id": task_id,
         "classes_count": len(g.meta.obj_classes),

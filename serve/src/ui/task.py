@@ -13,6 +13,7 @@ def init(data, state):
 
 def restart(data, state):
     data["doneTask"] = False
+    g.model_type = ''
 
 
 @g.my_app.callback("select_task")
@@ -21,6 +22,8 @@ def restart(data, state):
 def select_task(api: sly.Api, task_id, context, state, app_logger):
     g.api.app.set_field(g.TASK_ID, "state.modelsUpdating", True)
     architectures.reload_task(state["task"])
+
+    g.model_type = 'Object Detection' if state["task"] == 'detection' else 'Instance Segmentation'
     fields = [
         {"field": "state.collapsedModels", "payload": False},
         {"field": "state.disabledModels", "payload": False},

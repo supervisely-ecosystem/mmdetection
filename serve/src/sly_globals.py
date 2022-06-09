@@ -37,6 +37,8 @@ TASK_ID = my_app.task_id
 TEAM_ID = int(os.environ['context.teamId'])
 WORKSPACE_ID = int(os.environ['context.workspaceId'])
 
+
+model_type = ''
 meta: sly.ProjectMeta = None
 model = None
 local_weights_path = None
