@@ -1,2 +1,2 @@
 # object confidence threshold
-confidence_thresh: 0.1
+confidence_thresh: 0.5

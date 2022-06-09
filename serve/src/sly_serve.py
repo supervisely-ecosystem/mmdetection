@@ -5,6 +5,7 @@ import os
 import cv2
 import ui
 import yaml
+import torch
 from mmdet.apis import inference_detector
 import sly_mse_loss
 import sly_semantic_head
@@ -149,7 +150,7 @@ def postprocess_one_image_result(result, state, img_size):
                     mask_label = sly.Label(bitmap, obj_class, sly.TagCollection([conf_tag]))
                     labels.append(mask_label)
 
-    ann = sly.Annotation(img_size=img_size, labels=labels, )
+    ann = sly.Annotation(img_size=img_size, labels=labels)
     ann_json = ann.to_json()
     return ann_json
 
@@ -157,26 +158,23 @@ def postprocess_one_image_result(result, state, img_size):
 @sly.process_image_roi
 def inference_image_path(image_path, project_meta, context, state, app_logger):
     app_logger.debug("Input path(s)", extra={"path(s)": image_path})
-    is_batch = False
-    input_img = None
-    if isinstance(image_path, (list, tuple)):
-        is_batch = True
-        input_img = []
-        for impath in image_path:
-            input_img.append(cv2.imread(impath))
-    else:
-        input_img = cv2.imread(image_path)
     
-    results = inference_detector(g.model, input_img)
-
-    if is_batch:
+    if isinstance(image_path, str):
+        input_img_shape = cv2.imread(image_path).shape
+        result = inference_detector(g.model, image_path)
+        torch.cuda.empty_cache()
+        result_ann = postprocess_one_image_result(result, state, input_img_shape[:2])
+        return result_ann
+    else:
         result_anns = []
-        for idx, result in enumerate(results):
-            ann_json = postprocess_one_image_result(result, state, input_img[idx].shape[:2])
+        for path in image_path:
+            input_img_shape = cv2.imread(path).shape
+            result = inference_detector(g.model, path)
+            torch.cuda.empty_cache()
+            ann_json = postprocess_one_image_result(result, state, input_img_shape[:2])
             result_anns.append(ann_json)
         return result_anns
-    else:
-        return postprocess_one_image_result(results, state, input_img.shape[:2])
+
 
 
 def main():
