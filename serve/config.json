@@ -13,6 +13,7 @@
   ],
   "description": "Deploy model as REST API service",
   "docker_image": "supervisely/mmdet:1.0.3",
+  "instance_version": "6.4.57",
   "main_script": "serve/src/sly_serve.py",
   "gui_template": "serve/src/gui.html",
   "task_location": "application_sessions",
