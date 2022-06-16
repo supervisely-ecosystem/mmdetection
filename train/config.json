@@ -28,5 +28,6 @@
     "context_root": "Neural Networks",
     "context_category": "MM Detection"
   },
-  "poster": "https://i.imgur.com/idLERD3.png"
+  "poster": "https://i.imgur.com/idLERD3.png",
+  "community_agent": false
 }
