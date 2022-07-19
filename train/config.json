@@ -12,7 +12,7 @@
     "train"
   ],
   "description": "Dashboard to configure, start and monitor training",
-  "docker_image": "supervisely/mmdet:1.0.3",
+  "docker_image": "supervisely/mmdet:1.0.4",
   "instance_version": "6.4.57",
   "main_script": "train/src/main.py",
   "gui_template": "train/src/gui.html",
