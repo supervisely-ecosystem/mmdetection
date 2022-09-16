@@ -45,7 +45,7 @@ def init_cfg_optimizer(cfg, state):
 def init_cfg_pipelines(cfg):
     if cfg.pretrained_model == "YOLOX":
         cfg.data.train.dataset.pipeline.append(dict(type='SlyImgAugs', config_path=augs.augs_config_path))
-        train_steps_to_remove = ["RandomAffine", "YOLOXHSVRandomAug"]
+        train_steps_to_remove = ["RandomAffine", "YOLOXHSVRandomAug", "SlyImgAugs"]
         train_pipeline = []
         for config_step in cfg.data.train.pipeline:
             if config_step["type"] in train_steps_to_remove:
@@ -53,8 +53,9 @@ def init_cfg_pipelines(cfg):
             train_pipeline.append(config_step)
         cfg.data.train.pipeline = train_pipeline
         return
-    train_steps_to_remove = ["RandomShift", "PhotoMetricDistortion"]
+    train_steps_to_remove = ["RandomShift", "PhotoMetricDistortion", "SlyImgAugs"]
     train_pipeline = []
+
     for config_step in cfg.data.train.pipeline:
         if config_step["type"] in train_steps_to_remove:
             continue
