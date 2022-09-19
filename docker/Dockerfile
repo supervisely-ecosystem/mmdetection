@@ -1,4 +1,4 @@
-FROM supervisely/base-py-sdk:6.37.1
+FROM supervisely/base-py-sdk:6.62.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y ffmpeg

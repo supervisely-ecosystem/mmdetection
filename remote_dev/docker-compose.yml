@@ -6,7 +6,7 @@ services:
     build:
       context: .
       args:
-        IMAGE: supervisely/base-py-sdk:6.9.1
+        IMAGE: supervisely/base-py-sdk:6.62.0
     ports:
       - "9788:22"
     volumes:
