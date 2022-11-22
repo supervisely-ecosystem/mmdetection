@@ -131,6 +131,12 @@ def init_cfg_training(cfg, state):
 
     if not hasattr(cfg, "runner"):
         cfg.runner = ConfigDict()
+
+    if not hasattr(cfg.runner, "meta"):
+        cfg.runner.meta = ConfigDict()
+
+    if hasattr(cfg, "fp16"):
+        cfg.runner.meta.fp16 = cfg.fp16
     cfg.runner.type = "EpochBasedRunner"
     cfg.runner.max_epochs = state["epochs"]
     if hasattr(cfg, "total_epochs"):
