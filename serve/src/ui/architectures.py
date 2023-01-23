@@ -5,6 +5,7 @@ import yaml
 import requests
 import pkg_resources
 import sly_globals as g
+import torch
 import supervisely_lib as sly
 from mmcv import Config
 from mmcv.cnn.utils import revert_sync_batchnorm
@@ -79,6 +80,17 @@ def init(data, state):
     state["weightsPath"] = ""
     state["loadingModel"] = False
     state["device"] = "cuda:0"
+    device_values = ["cpu"]
+    device_names = ["CPU"]
+    if torch.cuda.is_available():
+        gpus = torch.cuda.device_count()
+        for i in range(gpus):
+            device_values.append(f"cuda:{i}")
+            device_names.append(f"{torch.cuda.get_device_name(i)} (cuda:{i})")
+
+    data["available_device_names"] = device_names
+    data["available_device_values"] = device_values
+    state["device"] = device_values[0]
     data["taskTitle"] = "Object Detection"
 
     ProgressBar(g.TASK_ID, g.api, "data.progressWeights", "Download weights", is_size=True,
