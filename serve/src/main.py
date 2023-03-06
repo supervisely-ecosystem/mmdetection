@@ -14,6 +14,7 @@ import torch
 import supervisely as sly
 import supervisely.app.widgets as Widgets
 import supervisely.nn.inference.gui as GUI
+from gui import MMDetectionGUI
 from supervisely.nn.prediction_dto import PredictionBBox, PredictionMask
 import pkg_resources
 from collections import OrderedDict
@@ -34,11 +35,6 @@ load_dotenv(os.path.expanduser("~/supervisely.env"))
 use_gui_for_local_debug = bool(int(os.environ.get("USE_GUI", "1")))
 
 models_meta_path = os.path.join(root_source_path, "models", "detection_meta.json")
-
-# for local debug
-selected_checkpoint = None 
-selected_model_name = None
-task_type = 'object detection'
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
@@ -61,8 +57,7 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
     ) -> None:
         self.device = device
         if self.gui is not None:
-
-            self.task_type = task_type # TODO: get from GUI
+            self.task_type = self.gui.get_task_type()
             model_source = self.gui.get_model_source()
             if model_source == "Pretrained models":
                 selected_model = self.gui.get_checkpoint_info()
@@ -119,6 +114,7 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         self.class_names = classes
 
         self._model_meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection(obj_classes))
+        self._get_confidence_tag_meta()
         print(f"✅ Model has been successfully loaded on {device.upper()} device")
 
     def get_classes(self) -> List[str]:
@@ -131,87 +127,90 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         info["checkpoint_name"] = self.checkpoint_name
         info["pretrained_on_dataset"] = self.dataset_name
         info["device"] = self.device
-        info["tracking_on_videos_support"] = False,
         return info
 
     def get_models(self, add_links=False):
-        if self.gui is None:
-            self.task_type = task_type
-        if self.task_type == 'object detection':
-            models_meta_path = os.path.join(root_source_path, "models", "detection_meta.json")
-        elif self.task_type == 'instance segmentation':
-            models_meta_path = os.path.join(root_source_path, "models", "instance_segmentation_meta.json")
-        model_yamls = sly.json.load_json_file(models_meta_path)
+        tasks = ['object detection', 'instance segmentation']
         model_config = {}
-        for model_meta in model_yamls:
-            mmdet_ver = pkg_resources.get_distribution("mmdet").version
-            model_yml_url = f"https://github.com/open-mmlab/mmdetection/tree/v{mmdet_ver}/configs/{model_meta['yml_file']}" 
-            model_yml_local = os.path.join(configs_dir, model_meta['yml_file'])
-            with open(model_yml_local, "r") as stream:
-                model_info = yaml.safe_load(stream)
-                model_config[model_meta["model_name"]] = {}
-                model_config[model_meta["model_name"]]["checkpoints"] = []
-                model_config[model_meta["model_name"]]["paper_from"] = model_meta["paper_from"]
-                model_config[model_meta["model_name"]]["year"] = model_meta["year"]
-                model_config[model_meta["model_name"]]["config_url"] = os.path.dirname(model_yml_url)
-                checkpoint_keys = []
-                for model in model_info["Models"]:
-                    checkpoint_info = OrderedDict()
-                    if "exclude" in model_meta.keys():
-                        if model_meta["exclude"].endswith("*"):
-                            if model["Name"].startswith(model_meta["exclude"][:-1]):
-                                continue
-                    # Saved For Training
-                    # checkpoint_info["Use semantic inside"] = False
-                    # if "semantic" in model_meta.keys():
-                    #     if model_meta["semantic"] == "*":
-                    #         checkpoint_info["Use semantic inside"] = True
-                    #     elif model_meta["semantic"].startswith("*") and model_meta["semantic"].endswith("*"):
-                    #         if model_meta["semantic"][1:-1] in model["Name"]:
-                    #             checkpoint_info["Use semantic inside"] = True
-                    #     elif model_meta["semantic"].startswith("*") and model["Name"].endswith(model_meta["semantic"][1:]):
-                    #         checkpoint_info["Use semantic inside"] = True
-                    #     elif model_meta["semantic"].endswith("*") and model_meta["semantic"].startswith("!"):
-                    #         if not model["Name"].startswith(model_meta["semantic"][1:-1]):
-                    #             checkpoint_info["Use semantic inside"] = True
-                        
-                    checkpoint_info["Name"] = model["Name"]
-                    checkpoint_info["Method"] = model["In Collection"]
-                    try:
-                        checkpoint_info["Inference Time (ms/im)"] = model["Metadata"]["inference time (ms/im)"][0]["value"]
-                    except KeyError:
-                        checkpoint_info["Inference Time (ms/im)"] = "-"
-                    try:
-                        checkpoint_info["Input Size (H, W)"] = model["Metadata"]["inference time (ms/im)"][0]["resolution"]
-                    except KeyError:
-                        checkpoint_info["Input Size (H, W)"] = "-"
-                    try:
-                        checkpoint_info["LR scheduler (epochs)"] = model["Metadata"]["Epochs"]
-                    except KeyError:
-                        checkpoint_info["LR scheduler (epochs)"] = "-"
-                    try:
-                        checkpoint_info["Memory (Training, GB)"] = model["Metadata"]["Training Memory (GB)"]
-                    except KeyError:
-                        checkpoint_info["Memory (Training, GB)"] = "-"
-                    for result in model["Results"]:
-                        if (self.task_type == "object detection" and result["Task"] == "Object Detection") or \
-                        (self.task_type == "instance segmentation" and result["Task"] == "Instance Segmentation"):
-                            checkpoint_info["Dataset"] = result["Dataset"]
-                            for metric_name, metric_val in result["Metrics"].items():
-                                checkpoint_info[metric_name] = metric_val
-                    try:
-                        weights_file = model["Weights"]
-                    except KeyError as e:
-                        sly.logger.info(f'Weights not found. Model: {model_meta["model_name"]}, checkpoint: {checkpoint_info["Name"]}')
-                        continue
-                    if add_links:
-                        checkpoint_info["config_file"] = model["Config"]
-                        checkpoint_info["weights_file"] = weights_file
-                    model_config[model_meta["model_name"]]["checkpoints"].append(checkpoint_info)
+        for task_type in tasks:
+            model_config[task_type] = {}
+            if task_type == 'object detection':
+                models_meta_path = os.path.join(root_source_path, "models", "detection_meta.json")
+            elif task_type == 'instance segmentation':
+                models_meta_path = os.path.join(root_source_path, "models", "instance_segmentation_meta.json")
+            model_yamls = sly.json.load_json_file(models_meta_path)
+            
+            for model_meta in model_yamls:
+                mmdet_ver = pkg_resources.get_distribution("mmdet").version
+                model_yml_url = f"https://github.com/open-mmlab/mmdetection/tree/v{mmdet_ver}/configs/{model_meta['yml_file']}" 
+                model_yml_local = os.path.join(configs_dir, model_meta['yml_file'])
+                with open(model_yml_local, "r") as stream:
+                    model_info = yaml.safe_load(stream)
+                    model_config[task_type][model_meta["model_name"]] = {}
+                    model_config[task_type][model_meta["model_name"]]["checkpoints"] = []
+                    model_config[task_type][model_meta["model_name"]]["paper_from"] = model_meta["paper_from"]
+                    model_config[task_type][model_meta["model_name"]]["year"] = model_meta["year"]
+                    model_config[task_type][model_meta["model_name"]]["config_url"] = os.path.dirname(model_yml_url)
+
+                    for model in model_info["Models"]:
+                        checkpoint_info = OrderedDict()
+                        if "exclude" in model_meta.keys():
+                            if model_meta["exclude"].endswith("*"):
+                                if model["Name"].startswith(model_meta["exclude"][:-1]):
+                                    continue
+                        # Saved For Training
+                        # checkpoint_info["Use semantic inside"] = False
+                        # if "semantic" in model_meta.keys():
+                        #     if model_meta["semantic"] == "*":
+                        #         checkpoint_info["Use semantic inside"] = True
+                        #     elif model_meta["semantic"].startswith("*") and model_meta["semantic"].endswith("*"):
+                        #         if model_meta["semantic"][1:-1] in model["Name"]:
+                        #             checkpoint_info["Use semantic inside"] = True
+                        #     elif model_meta["semantic"].startswith("*") and model["Name"].endswith(model_meta["semantic"][1:]):
+                        #         checkpoint_info["Use semantic inside"] = True
+                        #     elif model_meta["semantic"].endswith("*") and model_meta["semantic"].startswith("!"):
+                        #         if not model["Name"].startswith(model_meta["semantic"][1:-1]):
+                        #             checkpoint_info["Use semantic inside"] = True
+                            
+                        checkpoint_info["Name"] = model["Name"]
+                        checkpoint_info["Method"] = model["In Collection"]
+                        try:
+                            checkpoint_info["Inference Time (ms/im)"] = model["Metadata"]["inference time (ms/im)"][0]["value"]
+                        except KeyError:
+                            checkpoint_info["Inference Time (ms/im)"] = "-"
+                        try:
+                            checkpoint_info["Input Size (H, W)"] = model["Metadata"]["inference time (ms/im)"][0]["resolution"]
+                        except KeyError:
+                            checkpoint_info["Input Size (H, W)"] = "-"
+                        try:
+                            checkpoint_info["LR scheduler (epochs)"] = model["Metadata"]["Epochs"]
+                        except KeyError:
+                            checkpoint_info["LR scheduler (epochs)"] = "-"
+                        try:
+                            checkpoint_info["Memory (Training, GB)"] = model["Metadata"]["Training Memory (GB)"]
+                        except KeyError:
+                            checkpoint_info["Memory (Training, GB)"] = "-"
+                        for result in model["Results"]:
+                            if (task_type == "object detection" and result["Task"] == "Object Detection") or \
+                            (task_type == "instance segmentation" and result["Task"] == "Instance Segmentation"):
+                                checkpoint_info["Dataset"] = result["Dataset"]
+                                for metric_name, metric_val in result["Metrics"].items():
+                                    checkpoint_info[metric_name] = metric_val
+                        try:
+                            weights_file = model["Weights"]
+                        except KeyError as e:
+                            sly.logger.info(f'Weights not found. Model: {model_meta["model_name"]}, checkpoint: {checkpoint_info["Name"]}')
+                            continue
+                        if add_links:
+                            checkpoint_info["config_file"] = model["Config"]
+                            checkpoint_info["weights_file"] = weights_file
+                        model_config[task_type][model_meta["model_name"]]["checkpoints"].append(checkpoint_info)
         return model_config
 
     def download_pretrained_files(self, selected_model: Dict[str, str], model_dir: str):
-        models = self.get_models(add_links=True)
+        gui: MMDetectionGUI
+        task_type = self.gui.get_task_type()
+        models = self.get_models(add_links=True)[task_type]
         if self.gui is not None:
             model_name = list(self.gui.get_model_info().keys())[0]
         else:
@@ -251,6 +250,21 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         
         return weights_dst_path, config_path
 
+    def initialize_gui(self) -> None:
+        models = self.get_models()
+        for task_type in ["object detection", "instance segmentation"]:
+            for model_group in models[task_type].keys():
+                models[task_type][model_group]["checkpoints"] = self._preprocess_models_list(
+                    models[task_type][model_group]["checkpoints"]
+                )
+        self._gui = MMDetectionGUI(
+            models,
+            self.api,
+            support_pretrained_models=True,
+            support_custom_models=True,
+            custom_model_link_type="file",
+        )
+
     def predict(
         self, image_path: str, settings: Dict[str, Any]
     ) -> List[Union[PredictionBBox, PredictionMask]]:
@@ -273,7 +287,7 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         if segm_result is None:
             for bboxes, class_name in zip(bbox_result, self.get_classes()):
                 for bbox in bboxes:
-                    top, left, bottom, right, score = int(bbox[1]), int(bbox[0]), int(bbox[3]), int(bbox[2]), bbox[4]
+                    top, left, bottom, right, score = int(bbox[1]), int(bbox[0]), int(bbox[3]), int(bbox[2]), float(bbox[4])
                     if "confidence_thresh" in settings.keys() and score < settings["confidence_thresh"]:
                         continue
                     predictions.append(
@@ -287,7 +301,7 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
             for bboxes, masks, class_name in zip(bbox_result, segm_result, self.get_classes()):
                 assert len(bbox_result) == len(segm_result)
                 for bbox, mask in zip(bboxes, masks):
-                    score = bbox[4]
+                    score = float(bbox[4])
                     if "confidence_thresh" in settings.keys() and score < settings["confidence_thresh"]:
                         continue
                     if not mask.any():
@@ -309,7 +323,12 @@ if sly.is_production():
         "context.workspaceId": sly.env.workspace_id(),
     })
 
-m = MMDetectionModel(use_gui=True)
+custom_settings_path = os.path.join(app_source_path, "custom_settings.yml")
+
+m = MMDetectionModel(
+    use_gui=True, 
+    custom_inference_settings=custom_settings_path
+)
 
 if sly.is_production() or use_gui_for_local_debug is True:
     # this code block is running on Supervisely platform in production
@@ -317,16 +336,17 @@ if sly.is_production() or use_gui_for_local_debug is True:
     m.serve()
 else:
     # for local development and debugging without GUI
-    models = m.get_models(add_links=True)
-    selected_model_name = "Segmenter"
-    dataset_name = "ADE20K"
+    task_type = 'object detection'
+    models = m.get_models(add_links=True)[task_type]
+    selected_model_name = "TOOD"
+    dataset_name = "COCO"
     selected_checkpoint = models[selected_model_name]["checkpoints"][0]
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
     m.load_on_device(m.model_dir, device)
     image_path = "./demo_data/image_01.jpg"
-    results = m.predict(image_path, {})
+    results = m.predict(image_path, m.custom_inference_settings_dict)
     vis_path = "./demo_data/image_01_prediction.jpg"
-    m.visualize(results, image_path, vis_path, thickness=0)
+    m.visualize(results, image_path, vis_path)
     print(f"predictions and visualization have been saved: {vis_path}")
 
