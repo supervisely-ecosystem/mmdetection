@@ -1,6 +1,5 @@
 train/secret_debug.env
 serve/secret_debug.env
-configs
 checkpoints
 cache
 data
@@ -9,4 +8,5 @@ train/src/ui/__pycache__
 serve/src/__pycache__
 serve/src/ui/__pycache__
 .vscode
+.venv
 *.png
