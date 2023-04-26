@@ -9,7 +9,7 @@ def init_default_cfg_args(state):
     state["weightDecay"] = 0
     state["gradClipEnabled"] = True
     state["maxNorm"] = 10
-    state["lrPolicy"] = "Cyclic"
+    state["lrPolicy"] = "Fixed"
     state["availableLrPolicy"] = ["Fixed", "Step", "Exp", "Poly", "Inv", "CosineAnnealing", "FlatCosineAnnealing",
                                  "CosineRestart", "Cyclic", "OneCycle"]
     state["lr_step"] = ""
