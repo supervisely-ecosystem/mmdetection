@@ -144,7 +144,6 @@ class SuperviselyLoggerHook(TextLoggerHook):
         if log_dict["mode"] == "val":
             for class_ind, class_name in enumerate(cls.selected_classes):
                 if f"bbox_AP_{class_name}" in log_dict.keys():
-                    sly.logger.warn(f"bbox_AP_{class_name} not found in log dictionary")
                     fields.append(
                         {
                             "field": f"state.chartBoxClassAP.series[{class_ind}].data",
@@ -152,6 +151,8 @@ class SuperviselyLoggerHook(TextLoggerHook):
                             "append": True,
                         }
                     )
+                else:
+                    sly.logger.warn(f"bbox_AP_{class_name} not found in log dictionary")
                 if f"segm_AP_{class_name}" in log_dict.keys():
                     fields.append(
                         {
@@ -161,7 +162,6 @@ class SuperviselyLoggerHook(TextLoggerHook):
                         }
                     )
             if "bbox_mAP" in log_dict.keys():
-                sly.logger.warn("bbox_mAP not found in log dictionary")
                 fields.append(
                     {
                         "field": f"state.chartMAP.series[0].data",
