@@ -6,11 +6,11 @@ def init_default_cfg_args(state):
     state["valInterval"] = 1
     state["batchSizePerGPU"] = 2
     state["workersPerGPU"] = 2
-    state["optimizer"] = "SGD"
-    state["lr"] = 0.001
-    state["weightDecay"] = 0
+    state["optimizer"] = "AdamW"
+    state["lr"] = 0.0002
+    state["weightDecay"] = 0.0001
     state["gradClipEnabled"] = True
-    state["maxNorm"] = 10
+    state["maxNorm"] = 0.1
     state["lrPolicy"] = "Step"
     state["availableLrPolicy"] = [
         "Fixed",
