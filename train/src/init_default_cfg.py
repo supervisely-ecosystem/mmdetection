@@ -46,6 +46,18 @@ def init_default_cfg_args(state):
 
 
 def rewrite_default_cfg_args(cfg, state):
+    if cfg.pretrained_model == "YOLOX":
+        cfg.runner.max_epochs = 24
+        cfg.optimizer = {
+            "type": "AdamW",
+            "lr": 2e-4,
+            "weight_decay": 0.0001,
+            "paramwise_cfg": {"norm_decay_mult": 0.0, "bias_decay_mult": 0.0},
+        }
+        cfg.optimizer_config.grad_clip = {"max_norm": 0.1, "norm_type": 2}
+        cfg.lr_config = {"policy": "step", "step": [16, 22], "by_epoch": True, "warmup": None}
+        cfg.evaluation.interval = 1
+
     params = []
     if hasattr(cfg.data, "samples_per_gpu"):
         params.extend([{"field": "state.batchSizePerGPU", "payload": cfg.data.samples_per_gpu}])

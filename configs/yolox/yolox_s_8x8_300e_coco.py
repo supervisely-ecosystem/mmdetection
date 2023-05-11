@@ -96,27 +96,15 @@ data = dict(
 
 # optimizer
 # default 8 gpu
-# optimizer = dict(
-#     type='SGD',
-#     lr=0.01,
-#     momentum=0.9,
-#     weight_decay=5e-4,
-#     nesterov=True,
-#     paramwise_cfg=dict(norm_decay_mult=0., bias_decay_mult=0.))
-# optimizer_config = dict(grad_clip=None)
 optimizer = dict(
-    type="AdamW",
-    lr=2e-4,
-    weight_decay=0.0001,
-    paramwise_cfg=dict(
-        custom_keys={
-            "backbone": dict(lr_mult=0.1),
-            "sampling_offsets": dict(lr_mult=0.1),
-            "reference_points": dict(lr_mult=0.1),
-        }
-    ),
+    type="SGD",
+    lr=0.01,
+    momentum=0.9,
+    weight_decay=5e-4,
+    nesterov=True,
+    paramwise_cfg=dict(norm_decay_mult=0.0, bias_decay_mult=0.0),
 )
-optimizer_config = dict(grad_clip=dict(max_norm=0.1, norm_type=2))
+optimizer_config = dict(grad_clip=None)
 
 max_epochs = 300
 num_last_epochs = 15
@@ -124,17 +112,17 @@ resume_from = None
 interval = 10
 
 # learning policy
-# lr_config = dict(
-#     _delete_=True,
-#     policy='YOLOX',
-#     warmup='exp',
-#     by_epoch=False,
-#     warmup_by_epoch=True,
-#     warmup_ratio=1,
-#     warmup_iters=5,  # 5 epoch
-#     num_last_epochs=num_last_epochs,
-#     min_lr_ratio=0.05)
-lr_config = dict(policy="step", step=[40])
+lr_config = dict(
+    _delete_=True,
+    policy="YOLOX",
+    warmup="exp",
+    by_epoch=False,
+    warmup_by_epoch=True,
+    warmup_ratio=1,
+    warmup_iters=5,  # 5 epoch
+    num_last_epochs=num_last_epochs,
+    min_lr_ratio=0.05,
+)
 
 runner = dict(type="EpochBasedRunner", max_epochs=max_epochs)
 
