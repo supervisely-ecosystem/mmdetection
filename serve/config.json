@@ -26,5 +26,8 @@
     "deployed_nn"
   ],
   "poster": "https://i.imgur.com/GRGQrAy.png",
-  "community_agent": false
+  "community_agent": false,
+  "license": {
+    "type": "Apache-2.0" 
+  }
 }
