@@ -114,22 +114,22 @@ Application key points:
 
 **Step 1.** Add [Train MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/train) to your team
 
-<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="https://i.imgur.com/92PoYV7.png" width="350px" style='padding-bottom: 10px'/>
+<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="train/media/htr1.png" width="350px" style='padding-bottom: 10px'/>
 
 **Step 2.** Run app from context menu of the project with annotations (`polygon` and `bitmap` for instance segmentation or `rectangle` for object detection) [(example)](https://ecosystem.supervise.ly/projects/lemons-annotated)
 
-<img src="https://i.imgur.com/WPA54yW.png" width="100%" style='padding-top: 10px'>  
+<img src="train/media/htr2.png" width="100%" style='padding-top: 10px'>  
 
 
 # Demo
 
 <a data-key="sly-embeded-video-link" href="https://youtu.be/aYVutH46-Y4" data-video-code="aYVutH46-Y4">
-    <img src="https://i.imgur.com/ChgrlXV.png" alt="SLY_EMBEDED_VIDEO_LINK"  style="max-width:80%;">
+    <img src="train/media/demo.png" alt="SLY_EMBEDED_VIDEO_LINK"  style="max-width:80%;">
 </a>
 
 # Screenshot
 
-<img src="https://i.imgur.com/zwKhI6w.png" width="100%" style='padding-top: 10px'>
+<img src="train/media/s1.png" width="100%" style='padding-top: 10px'>
 
 # Acknowledgment
 
