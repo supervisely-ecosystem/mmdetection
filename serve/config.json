@@ -19,13 +19,13 @@
   "port": 8000,
   "task_location": "application_sessions",
   "need_gpu": true,
-  "icon": "https://i.imgur.com/1RsNWVU.png",
+  "icon": "media/icon.png",
   "isolate": true,
   "icon_cover": true,
   "session_tags": [
     "deployed_nn"
   ],
-  "poster": "https://i.imgur.com/GRGQrAy.png",
+  "poster": "media/poster.png",
   "community_agent": false,
   "license": {
     "type": "Apache-2.0" 
