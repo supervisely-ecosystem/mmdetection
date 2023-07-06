@@ -1,6 +1,6 @@
 
 <div align="center" markdown>
-<img src="serve/media/poster.png"/>  
+<img src="media/poster.png"/>  
 
 # Serve MMDetection
 
@@ -35,11 +35,11 @@ Application key points:
 
 **Step 1.** Add [Serve MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/serve) to your team
 
-<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/serve" src="serve/media/htr1.png" width="350px" style='padding-bottom: 10px'/>
+<img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/serve" src="media/htr1.png" width="350px" style='padding-bottom: 10px'/>
 
 **Step 2.** Run the application from Plugins & Apps page
 
-<img src="serve/media/htr2.png" width="80%" style='padding-top: 10px'>  
+<img src="media/htr2.png" width="80%" style='padding-top: 10px'>  
 
 # How to Use
 
@@ -47,15 +47,15 @@ Application key points:
 
 **Step 1.** Select Deep Learning problem to solve
 
-<img src="serve/media/htu1.png" width="80%">  
+<img src="media/htu1.png" width="80%">  
 
 **Step 2.** Select architecture, pretrained model, deploying device and press the **Serve** button
 
-<img src="serve/media/htu2.png" width="80%">  
+<img src="media/htu2.png" width="80%">  
 
 **Step 3.** Wait for the model to deploy
 
-<img src="serve/media/htu.png" width="80%">
+<img src="media/htu3.png" width="80%">
 
 **Custom models**
 
@@ -78,16 +78,16 @@ We attach [the notebook](https://github.com/supervisely-ecosystem/mmdetection/bl
 
 
 - [Train MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/train) - app allows to play with different inference options, monitor metrics charts in real time, and save training artifacts to Team Files.  
-  <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="serve/media/ra1.png" height="60px" margin-bottom="20px"/>
+  <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="media/ra1.png" height="60px" margin-bottom="20px"/>
 
 - [Apply NN to Images Project](https://ecosystem.supervise.ly/apps/supervisely-ecosystem%252Fnn-image-labeling%252Fproject-dataset) - app allows to play with different inference options and visualize predictions in real time.  Once you choose inference settings you can apply model to all images in your project to visually analyse predictions and perform automatic data pre-labeling.   
-    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/nn-image-labeling/project-dataset" src="serve/media/ra2.png" height="70px" margin-bottom="20px"/>  
+    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/nn-image-labeling/project-dataset" src="media/ra2.png" height="70px" margin-bottom="20px"/>  
 
 - [Apply NN to Videos Project](https://ecosystem.supervise.ly/apps/apply-nn-to-videos-project) - app allows to label your videos using served Supervisely models.  
-  <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/apply-nn-to-videos-project" src="serve/media/ra3.png" height="70px" margin-bottom="20px" />
+  <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/apply-nn-to-videos-project" src="media/ra3.png" height="70px" margin-bottom="20px" />
 
 - [NN Image Labeling](https://ecosystem.supervise.ly/apps/supervisely-ecosystem%252Fnn-image-labeling%252Fannotation-tool) - integrate any deployd NN to Supervisely Image Labeling UI. Configure inference settings and model output classes. Press `Apply` button (or use hotkey) and detections with their confidences will immediately appear on the image.   
-    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/nn-image-labeling/annotation-tool" src="serve/media/ra4.png" height="70px" margin-bottom="20px"/>
+    <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/nn-image-labeling/annotation-tool" src="media/ra4.png" height="70px" margin-bottom="20px"/>
 
 
 # Acknowledgment
