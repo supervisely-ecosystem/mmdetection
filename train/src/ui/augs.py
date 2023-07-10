@@ -33,6 +33,9 @@ _templates = [
 
 _custom_pipeline_path = None
 custom_pipeline = None
+custom_config = None
+custom_py_preview = None
+
 gallery1: CompareGallery = None
 gallery2: CompareGallery = None
 remote_preview_path = "/temp/preview_augs.jpg"
@@ -113,7 +116,7 @@ def restart(data, state):
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def load_existing_pipeline(api: sly.Api, task_id, context, state, app_logger):
-    global _custom_pipeline_path, custom_pipeline
+    global _custom_pipeline_path, custom_pipeline, custom_config, custom_py_preview
 
     api.task.set_field(task_id, "data.customAugsPy", None)
 
@@ -121,8 +124,8 @@ def load_existing_pipeline(api: sly.Api, task_id, context, state, app_logger):
     _custom_pipeline_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(remote_path))
     api.file.download(g.team_id, remote_path, _custom_pipeline_path)
 
-    custom_pipeline, py_code, config = _load_template(_custom_pipeline_path)
-    api.task.set_field(task_id, "data.customAugsPy", py_code)
+    custom_pipeline, custom_py_preview, custom_config = _load_template(_custom_pipeline_path)
+    api.task.set_field(task_id, "data.customAugsPy", custom_py_preview)
 
 
 def convert_ann_to_bboxes(ann):
@@ -192,9 +195,17 @@ def use_augs(api: sly.Api, task_id, context, state, app_logger):
     global augs_config_path
     global augs_json_config
     global augs_py_preview
+    global custom_config, custom_py_preview
 
     if state["useAugs"]:
-        _, py_code, config = get_template_by_name(state["augsTemplateName"])
+        if state["augsType"] == "template":
+            _, py_code, config = get_template_by_name(state["augsTemplateName"])
+        else:
+            if custom_config is None:
+                raise Exception("Please, load the augmentations by clicking on the \"LOAD\" button.")
+            config = custom_config
+            py_code = custom_py_preview
+
         augs_json_config = config
         augs_py_preview = py_code
         augs_py_path = os.path.join(g.my_app.data_dir, "augs_preview.py")
