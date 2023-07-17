@@ -18,6 +18,7 @@
   "gui_template": "train/src/gui.html",
   "task_location": "workspace_tasks",
   "need_gpu": true,
+  "gpu": "required",
   "isolate": true,
   "icon": "https://i.imgur.com/C7TLPYB.png",
   "icon_cover": true,
