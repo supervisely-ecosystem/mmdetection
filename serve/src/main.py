@@ -118,7 +118,14 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         print(f"✅ Model has been successfully loaded on {device.upper()} device")
 
     def get_classes(self) -> List[str]:
-        return self.class_names  # e.g. ["cat", "dog", ...]
+        try:
+            return self.class_names  # e.g. ["cat", "dog", ...]
+        except AttributeError as e:
+            raise Exception(
+                f"{repr(e)}. "
+                "You are probably trying to serve model trained outside the Supervisely. "
+                "But this app supports custom checkpoints only for models trained in Supervisely via corresponding training app"
+            )
 
     def get_info(self) -> dict:
         info = super().get_info()
