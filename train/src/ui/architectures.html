@@ -69,7 +69,7 @@
         <el-tab-pane name="custom" :disabled="data.doneModels">
             <el-radio slot="label" v-model="state.weightsInitialization" label="custom" :disabled="data.doneModels">
                 Custom weights
-                <div>Model trained in Supervisely and located in Team Files</div>
+                <div>load custom weights from Team Files</div>
             </el-radio>
             <sly-field title="Path to weights file" description="Copy path in Team Files">
                 <el-input v-model="state.weightsPath" :disabled="data.doneModels"
