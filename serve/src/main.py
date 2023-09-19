@@ -1,4 +1,5 @@
 import os
+import json
 import shutil
 import sys
 try:
@@ -39,6 +40,18 @@ models_meta_path = os.path.join(root_source_path, "models", "detection_meta.json
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
 
+
+
+def get_message_from_exception(exception):
+    try:
+        json_text = exception.args[0].response.text
+        info = json.loads(json_text)
+        exc_message = info.get("message", repr(exception))
+    except:
+        exc_message = repr(exception)
+    return exc_message
+
+
 configs_dir = os.path.join(root_source_path, "configs")
 mmdet_ver = pkg_resources.get_distribution("mmdet").version
 if os.path.isdir(f"/tmp/mmdet/mmdetection-{mmdet_ver}"):
@@ -76,7 +89,16 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         elif 'init_cfg' in cfg.model.backbone:
             cfg.model.backbone.init_cfg = None
         cfg.model.train_cfg = None
-        model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
+        try:
+            model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
+        except Exception as e:
+            exc_message = get_message_from_exception(e)
+            raise Exception(
+                "Cannot build model. "
+                "You are probably trying to serve model trained outside the Supervisely. "
+                "But this app supports custom checkpoints only for models trained in Supervisely via corresponding training app"
+                f"{exc_message}. "
+            )
         checkpoint = load_checkpoint(model, weights_path, map_location='cpu')
         
         if model_source == "Custom models":
@@ -118,7 +140,11 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         print(f"✅ Model has been successfully loaded on {device.upper()} device")
 
     def get_classes(self) -> List[str]:
-        return self.class_names  # e.g. ["cat", "dog", ...]
+        try:
+            return self.class_names  # e.g. ["cat", "dog", ...]
+        except AttributeError as e:
+            exc_message = get_message_from_exception(e)
+            raise Exception(f"Cannot get classes. Make sure that model is running. {exc_message}.")
 
     def get_info(self) -> dict:
         info = super().get_info()
