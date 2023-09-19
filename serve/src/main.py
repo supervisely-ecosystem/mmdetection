@@ -89,7 +89,16 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
         elif 'init_cfg' in cfg.model.backbone:
             cfg.model.backbone.init_cfg = None
         cfg.model.train_cfg = None
-        model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
+        try:
+            model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
+        except Exception as e:
+            exc_message = get_message_from_exception(e)
+            raise Exception(
+                "Cannot build model. "
+                "You are probably trying to serve model trained outside the Supervisely. "
+                "But this app supports custom checkpoints only for models trained in Supervisely via corresponding training app"
+                f"{exc_message}. "
+            )
         checkpoint = load_checkpoint(model, weights_path, map_location='cpu')
         
         if model_source == "Custom models":
@@ -135,11 +144,7 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
             return self.class_names  # e.g. ["cat", "dog", ...]
         except AttributeError as e:
             exc_message = get_message_from_exception(e)
-            raise Exception(
-                f"{exc_message}. "
-                "You are probably trying to serve model trained outside the Supervisely. "
-                "But this app supports custom checkpoints only for models trained in Supervisely via corresponding training app"
-            )
+            raise Exception(f"Cannot get classes. Make sure that model is running. {exc_message}.")
 
     def get_info(self) -> dict:
         info = super().get_info()
