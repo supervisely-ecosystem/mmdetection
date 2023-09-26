@@ -11,5 +11,7 @@ RUN pip3 install mmcls==0.23.1
 RUN pip3 install pyyaml==6.0
 RUN pip3 install scikit-learn==1.0.2
 
+RUN pip3 install supervisely==6.72.137
+
 RUN mkdir -p /tmp/mmdet \
     && wget https://github.com/open-mmlab/mmdetection/archive/refs/tags/v2.22.0.zip -P /tmp/mmdet
