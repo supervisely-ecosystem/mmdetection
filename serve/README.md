@@ -66,13 +66,8 @@ Model and directory structure must be acquired via [Train MMDetection](https://e
 
 # How To Use Custom Model Outside The Platform
 
-We attach [the notebook](https://github.com/supervisely-ecosystem/mmdetection/blob/main/serve/run_image.ipynb) as template to use your custom model outside Supervisely. Your model should be trained in [Train MMDetection](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/mmdetection/train) app and checkpoint should be saved to Team Files.
+You can use your trained models outside Supervisely platform without any dependencies on Supervisely SDK. You just need to download model weights (.pth) and a config file from Team Files, and then you can build and use the model as a normal model in mmdetection. See this [Jupyter Notebook](https://github.com/supervisely-ecosystem/mmdetection/blob/main/inference_outside_supervisely.ipynb) for details.
 
-1. Download weights file `.pth` from Team Files. Select file with name `best_*.pth` to use model with the best score or any other model from `checkpoints` directory.
-2. Download `config.py` file from Team Files (`checkpoints` directory).
-3. Change paths in the notebook (variables `img_path`, `config_path`, `weights_path`, `device`)
-4. Run the notebook step by step.
-    
 
 # Related Apps
 

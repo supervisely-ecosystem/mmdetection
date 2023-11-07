@@ -9,6 +9,7 @@
   <a href="#Overview">Overview</a> •
   <a href="#How-To-Run">How To Run</a> •
   <a href="#Demo">Demo</a> •
+  <a href="#How-To-Use-Custom-Model-Outside-The-Platform">How To Use Custom Model Outside The Platform</a> •
   <a href="#Screenshot">Screenshot</a> •
   <a href="#Acknowledgment">Acknowledgment</a>
 </p>
@@ -126,6 +127,12 @@ Application key points:
 <a data-key="sly-embeded-video-link" href="https://youtu.be/aYVutH46-Y4" data-video-code="aYVutH46-Y4">
     <img src="https://i.imgur.com/ChgrlXV.png" alt="SLY_EMBEDED_VIDEO_LINK"  style="max-width:80%;">
 </a>
+
+
+# How To Use Custom Model Outside The Platform
+
+You can use your trained models outside Supervisely platform without any dependencies on Supervisely SDK. You just need to download model weights (.pth) and a config file from Team Files, and then you can build and use the model as a normal model in mmdetection. See this [Jupyter Notebook](https://github.com/supervisely-ecosystem/mmdetection/blob/main/inference_outside_supervisely.ipynb) for details.
+
 
 # Screenshot
 

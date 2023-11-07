@@ -10,3 +10,4 @@ serve/src/ui/__pycache__
 .vscode
 .venv
 *.png
+/my_model
