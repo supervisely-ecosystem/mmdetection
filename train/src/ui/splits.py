@@ -235,13 +235,18 @@ def get_train_val_sets(state):
 
 def verify_train_val_sets(train_set, val_set):
     if len(train_set) == 0:
-        raise ValueError("Train set is empty, check or change split configuration")
+        g.my_app.show_modal_window("Train set is empty, check or change split configuration", level="warning")
+        return False
     elif len(train_set) < 1:
-        raise ValueError("Train set is not big enough, min size is 1.")
+        g.my_app.show_modal_window("Train set is not big enough, min size is 1.", level="warning")
+        return False
     if len(val_set) == 0:
-        raise ValueError("Val set is empty, check or change split configuration")
+        g.my_app.show_modal_window("Val set is empty, check or change split configuration", level="warning")
+        return False
     elif len(val_set) < 1:
-        raise ValueError("Val set is not big enough, min size is 1.")
+        g.my_app.show_modal_window("Val set is not big enough, min size is 1.", level="warning")
+        return False
+    return True
 
 
 @g.my_app.callback("create_splits")
@@ -258,7 +263,11 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             train_set, val_set, ignored_untagged_cnt, ignored_double_tagged_cnt = get_train_val_sets(state)
         else:
             train_set, val_set = get_train_val_sets(state)
-        verify_train_val_sets(train_set, val_set)
+        success = verify_train_val_sets(train_set, val_set)
+        if not success:
+            api.task.set_field(task_id, "state.splitInProgress", False)
+            return
+            
         if train_set is not None:
             sly.logger.info("Converting train annotations to COCO format...")
             save_set_to_coco_json(train_set_path, train_set, state["selectedClasses"], state["task"], "Train")
