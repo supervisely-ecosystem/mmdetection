@@ -9,5 +9,5 @@ serve/src/__pycache__
 serve/src/ui/__pycache__
 .vscode
 .venv
-*.png
+# *.png
 /my_model
