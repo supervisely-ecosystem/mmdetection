@@ -1,4 +1,5 @@
 import datetime
+import numpy as np
 from mmcv.runner.hooks import HOOKS
 from mmcv.runner.hooks.logger.text import TextLoggerHook
 import supervisely_lib as sly
@@ -74,7 +75,8 @@ class SuperviselyLoggerHook(TextLoggerHook):
                 losses = []
                 for key, val in log_dict.items():
                     if key.endswith(loss_name):
-                        losses.append(val)
+                        if not np.isnan(val):
+                            losses.append(val)
                 if losses:
                     log_dict[loss_name] = sum(losses)
 
@@ -86,7 +88,8 @@ class SuperviselyLoggerHook(TextLoggerHook):
                     if key.endswith(loss_name):
                         losses.append(key)
                 if not losses and "loss" in key and key != "loss":
-                    other_losses.append(val)
+                    if not np.isnan(val):
+                        other_losses.append(val)
             if other_losses:
                 log_dict["loss_other"] = sum(other_losses)
 
