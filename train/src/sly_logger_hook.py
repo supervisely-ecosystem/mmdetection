@@ -1,4 +1,5 @@
 import datetime
+import math
 from mmcv.runner.hooks import HOOKS
 from mmcv.runner.hooks.logger.text import TextLoggerHook
 import supervisely_lib as sly
@@ -74,6 +75,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                 losses = []
                 for key, val in log_dict.items():
                     if key.endswith(loss_name):
+                        if not math.isfinite(val):
+                            sly.logger.warn(f"{loss_name} has unserializable value (NaN or inf)!")
+                            val = 0
                         losses.append(val)
                 if losses:
                     log_dict[loss_name] = sum(losses)
@@ -86,6 +90,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                     if key.endswith(loss_name):
                         losses.append(key)
                 if not losses and "loss" in key and key != "loss":
+                    if not math.isfinite(val):
+                        sly.logger.warn(f"{key} has unserializable value (NaN or inf)!")
+                        val = 0
                     other_losses.append(val)
             if other_losses:
                 log_dict["loss_other"] = sum(other_losses)
