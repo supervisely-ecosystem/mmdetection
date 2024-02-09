@@ -97,22 +97,34 @@ class SuperviselyLoggerHook(TextLoggerHook):
             if other_losses:
                 log_dict["loss_other"] = sum(other_losses)
 
-            fields.extend(
-                [
+            if log_dict["lr"] in log_dict.keys():
+                if not math.isfinite(log_dict["lr"]):
+                    sly.logger.warn(f"lr has unserializable value (NaN or inf)!")
+                    log_dict["lr"] = 0
+                fields.append(
                     {
                         "field": "state.chartLR.series[0].data",
                         "payload": [[epoch_float, round(log_dict["lr"], 6)]],
                         "append": True,
-                    },
+                    }
+                )
+            if log_dict["loss"] in log_dict.keys():
+                if not math.isfinite(log_dict["loss"]):
+                    sly.logger.warn(f"loss has unserializable value (NaN or inf)!")
+                    log_dict["loss"] = 0
+                fields.append(
                     {
                         "field": "state.chartLossBasic.series[0].data",
                         "payload": [[epoch_float, round(log_dict["loss"], 6)]],
                         "append": True,
-                    },
-                ]
-            )
+                    }
+                )
+
             for idx, loss_name in enumerate(basic_loss_names):
                 if loss_name in log_dict.keys():
+                    if not math.isfinite(log_dict[loss_name]):
+                        sly.logger.warn(f"{loss_name} has unserializable value (NaN or inf)!")
+                        log_dict[loss_name] = 0
                     fields.append(
                         {
                             "field": f"state.chartLossBasic.series[{idx + 1}].data",
@@ -123,6 +135,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
 
             for idx, loss_name in enumerate(other_loss_names):
                 if loss_name in log_dict.keys():
+                    if not math.isfinite(log_dict[loss_name]):
+                        sly.logger.warn(f"{loss_name} has unserializable value (NaN or inf)!")
+                        log_dict[loss_name] = 0
                     fields.append(
                         {
                             "field": f"state.chartLossOther.series[{idx}].data",
