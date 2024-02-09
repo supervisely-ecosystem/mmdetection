@@ -22,6 +22,7 @@ class SuperviselyLoggerHook(TextLoggerHook):
 
     def _log_info(self, log_dict, runner):
         super(SuperviselyLoggerHook, self)._log_info(log_dict, runner)
+        nan_values = []
 
         if log_dict["mode"] == "train" and "time" in log_dict.keys():
             self.time_sec_tot += log_dict["time"] * self.interval
@@ -76,7 +77,7 @@ class SuperviselyLoggerHook(TextLoggerHook):
                 for key, val in log_dict.items():
                     if key.endswith(loss_name):
                         if not math.isfinite(val):
-                            sly.logger.warn(f"{loss_name} has unserializable value (NaN or inf)!")
+                            nan_values.append(key)
                             val = 0
                         losses.append(val)
                 if losses:
@@ -91,28 +92,40 @@ class SuperviselyLoggerHook(TextLoggerHook):
                         losses.append(key)
                 if not losses and "loss" in key and key != "loss":
                     if not math.isfinite(val):
-                        sly.logger.warn(f"{key} has unserializable value (NaN or inf)!")
+                        nan_values.append(key)
                         val = 0
                     other_losses.append(val)
             if other_losses:
                 log_dict["loss_other"] = sum(other_losses)
 
-            fields.extend(
-                [
+            if log_dict["lr"] in log_dict.keys():
+                if not math.isfinite(log_dict["lr"]):
+                    nan_values.append("lr")
+                    log_dict["lr"] = 0
+                fields.append(
                     {
                         "field": "state.chartLR.series[0].data",
                         "payload": [[epoch_float, round(log_dict["lr"], 6)]],
                         "append": True,
-                    },
+                    }
+                )
+            if log_dict["loss"] in log_dict.keys():
+                if not math.isfinite(log_dict["loss"]):
+                    nan_values.append("loss")
+                    log_dict["loss"] = 0
+                fields.append(
                     {
                         "field": "state.chartLossBasic.series[0].data",
                         "payload": [[epoch_float, round(log_dict["loss"], 6)]],
                         "append": True,
-                    },
-                ]
-            )
+                    }
+                )
+
             for idx, loss_name in enumerate(basic_loss_names):
                 if loss_name in log_dict.keys():
+                    if not math.isfinite(log_dict[loss_name]):
+                        nan_values.append(loss_name)
+                        log_dict[loss_name] = 0
                     fields.append(
                         {
                             "field": f"state.chartLossBasic.series[{idx + 1}].data",
@@ -123,6 +136,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
 
             for idx, loss_name in enumerate(other_loss_names):
                 if loss_name in log_dict.keys():
+                    if not math.isfinite(log_dict[loss_name]):
+                        nan_values.append(loss_name)
+                        log_dict[loss_name] = 0
                     fields.append(
                         {
                             "field": f"state.chartLossOther.series[{idx}].data",
@@ -154,6 +170,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
         if log_dict["mode"] == "val":
             for class_ind, class_name in enumerate(cls.selected_classes):
                 if f"bbox_AP_{class_name}" in log_dict.keys():
+                    if not math.isfinite(log_dict[f"bbox_AP_{class_name}"]):
+                        nan_values.append(f"bbox_AP_{class_name}")
+                        log_dict[f"bbox_AP_{class_name}"] = 0
                     fields.append(
                         {
                             "field": f"state.chartBoxClassAP.series[{class_ind}].data",
@@ -164,6 +183,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                 else:
                     sly.logger.warn(f"bbox_AP_{class_name} not found in log dictionary")
                 if f"segm_AP_{class_name}" in log_dict.keys():
+                    if not math.isfinite(log_dict[f"segm_AP_{class_name}"]):
+                        nan_values.append(f"segm_AP_{class_name}")
+                        log_dict[f"segm_AP_{class_name}"] = 0
                     fields.append(
                         {
                             "field": f"state.chartMaskClassAP.series[{class_ind}].data",
@@ -172,6 +194,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                         }
                     )
             if "bbox_mAP" in log_dict.keys():
+                if not math.isfinite(log_dict["bbox_mAP"]):
+                    nan_values.append("bbox_mAP")
+                    log_dict["bbox_mAP"] = 0
                 fields.append(
                     {
                         "field": f"state.chartMAP.series[0].data",
@@ -180,6 +205,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                     }
                 )
             if f"segm_mAP" in log_dict.keys():
+                if not math.isfinite(log_dict["segm_mAP"]):
+                    nan_values.append("segm_mAP")
+                    log_dict["segm_mAP"] = 0
                 fields.append(
                     {
                         "field": f"state.chartMAP.series[1].data",
@@ -188,6 +216,8 @@ class SuperviselyLoggerHook(TextLoggerHook):
                     }
                 )
         try:
+            if len(nan_values) > 0:
+                sly.logger.warn(f"Unserializable (NaN or inf) values found in log dictionary: {nan_values}")
             g.api.app.set_fields(g.task_id, fields)
         except Exception as e:
             print("Unabled to write metrics to chart!")

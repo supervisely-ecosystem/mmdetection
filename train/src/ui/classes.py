@@ -92,8 +92,6 @@ def get_items_to_ignore(selected_classes, task):
         for ann_info in g.api.annotation.get_list(dataset.id):
             ann_objects = ann_info.annotation["objects"]
             labels_to_include = [label for label in ann_objects if label["classTitle"] in selected_classes]
-            if task == "instance_segmentation":
-                labels_to_include = [label for label in ann_objects if label["geometryType"] in ["bitmap", "polygon"]]
             if len(labels_to_include) == 0:
                 items_to_ignore[dataset.name].append(ann_info.image_name)
     return items_to_ignore

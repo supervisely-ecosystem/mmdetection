@@ -25,7 +25,11 @@
                 }
                 "
     >
-      <el-table-column type="selection" width="55"></el-table-column>
+      <el-table-column
+        type="selection"
+        width="55"
+        :selectable="(row) => row.objectsCount > 0 && row.imagesCount > 0"
+      ></el-table-column>
       <el-table-column label="Name" prop="title" sortable>
         <template scope="scope">
           <i class="zmdi zmdi-circle mr5" :style="{color: scope.row.color}"></i>
