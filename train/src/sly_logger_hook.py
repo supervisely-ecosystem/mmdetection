@@ -191,4 +191,5 @@ class SuperviselyLoggerHook(TextLoggerHook):
             g.api.app.set_fields(g.task_id, fields)
         except Exception as e:
             print("Unabled to write metrics to chart!")
+            sly.logger.info(fields)
             print(e)
