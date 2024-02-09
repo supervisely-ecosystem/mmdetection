@@ -154,6 +154,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
         if log_dict["mode"] == "val":
             for class_ind, class_name in enumerate(cls.selected_classes):
                 if f"bbox_AP_{class_name}" in log_dict.keys():
+                    if not math.isfinite(log_dict[f"bbox_AP_{class_name}"]):
+                        sly.logger.warn(f"bbox_AP_{class_name} has unserializable value (NaN or inf)!")
+                        log_dict[f"bbox_AP_{class_name}"] = 0
                     fields.append(
                         {
                             "field": f"state.chartBoxClassAP.series[{class_ind}].data",
@@ -164,6 +167,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                 else:
                     sly.logger.warn(f"bbox_AP_{class_name} not found in log dictionary")
                 if f"segm_AP_{class_name}" in log_dict.keys():
+                    if not math.isfinite(log_dict[f"segm_AP_{class_name}"]):
+                        sly.logger.warn(f"segm_AP_{class_name} has unserializable value (NaN or inf)!")
+                        log_dict[f"segm_AP_{class_name}"] = 0
                     fields.append(
                         {
                             "field": f"state.chartMaskClassAP.series[{class_ind}].data",
@@ -172,6 +178,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                         }
                     )
             if "bbox_mAP" in log_dict.keys():
+                if not math.isfinite(log_dict["bbox_mAP"]):
+                    sly.logger.warn(f"bbox_mAP has unserializable value (NaN or inf)!")
+                    log_dict["bbox_mAP"] = 0
                 fields.append(
                     {
                         "field": f"state.chartMAP.series[0].data",
@@ -180,6 +189,9 @@ class SuperviselyLoggerHook(TextLoggerHook):
                     }
                 )
             if f"segm_mAP" in log_dict.keys():
+                if not math.isfinite(log_dict["segm_mAP"]):
+                    sly.logger.warn(f"segm_mAP has unserializable value (NaN or inf)!")
+                    log_dict["segm_mAP"] = 0
                 fields.append(
                     {
                         "field": f"state.chartMAP.series[1].data",
