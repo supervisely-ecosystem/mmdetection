@@ -87,7 +87,9 @@
             <el-button @click="state.restartFrom = null">Cancel</el-button>
             <!--        $nextTick(() => { $refs['card3'].$el.scrollIntoView({behavior: 'smooth', block: 'center'}); });-->
             <el-button type="primary" class="regular"
-                       @click="command('restart');">
+                       @click="command('restart'); state.restartLoading = true;"
+                       :loading="state.restartLoading"
+            >
                 Confirm
             </el-button>
         </span>

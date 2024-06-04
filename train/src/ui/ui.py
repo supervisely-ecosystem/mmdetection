@@ -14,6 +14,7 @@ import task
 def init(data, state):
     state["activeStep"] = 1
     state["restartFrom"] = None
+    state["restartLoading"] = False
     input_project.init(data, state)
     task.init(data, state)
     classes.init(g.api, data, state, g.project_id, g.project_meta)
@@ -29,6 +30,9 @@ def init(data, state):
 @g.my_app.ignore_errors_and_show_dialog_window()
 def restart(api: sly.Api, task_id, context, state, app_logger):
     restart_from_step = state["restartFrom"]
+    if restart_from_step is None:
+        g.api.app.set_fields(g.task_id, [{"field": "state.restartLoading", "payload": False}])
+        return
     data = {}
     state = {}
 
@@ -76,5 +80,6 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
         {"field": "state.restartFrom", "payload": None},
         {"field": "state.activeStep", "payload": restart_from_step},
         {"field": "data.scrollIntoView", "payload": f"step{restart_from_step}"},
+        {"field": "state.restartLoading", "payload": False}
     ]
     g.api.app.set_fields(g.task_id, fields)
