@@ -1,5 +1,4 @@
 import supervisely as sly
-from supervisely.nn.checkpoints.mmdetection import MMDetectionCheckpoint
 from sly_train_progress import init_progress, _update_progress_ui
 import sly_globals as g
 import os
@@ -183,18 +182,17 @@ def upload_artifacts_and_log_progress(task_type: str):
         upload_monitor, api=g.api, task_id=g.task_id, progress=progress
     )
 
-    checkpoint = MMDetectionCheckpoint(g.team_id)
-    model_dir = checkpoint.get_model_dir()
+    model_dir = g.checkpoint.get_model_dir()
     remote_artifacts_dir = f"{model_dir}/{g.task_id}_{g.project_info.name}"
-    remote_weights_dir = os.path.join(remote_artifacts_dir, checkpoint.weights_dir)
-    remote_config_path = os.path.join(remote_weights_dir, checkpoint.config_file)
+    remote_weights_dir = os.path.join(remote_artifacts_dir, g.checkpoint.weights_dir)
+    remote_config_path = os.path.join(remote_weights_dir, g.checkpoint.config_file)
 
     res_dir = g.api.file.upload_directory(
         g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
     )
 
-    checkpoint.generate_sly_metadata(
-        app_name=checkpoint.app_name,
+    g.checkpoint.generate_sly_metadata(
+        app_name=g.checkpoint.app_name,
         session_id=g.task_id,
         session_path=remote_artifacts_dir,
         weights_dir=remote_weights_dir,
