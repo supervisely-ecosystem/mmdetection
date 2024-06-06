@@ -230,7 +230,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         init_class_charts_series(state)
         sly.json.dump_json_file(state, os.path.join(g.info_dir, "ui_state.json"))
 
-        task_type = state["task"]
+        task_type = state.get("task", "undefined")
         cfg = init_cfg(state, state["selectedClasses"], None)
         # dump config
         os.makedirs(
