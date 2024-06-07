@@ -196,6 +196,7 @@ def upload_artifacts_and_log_progress(task_type: str):
         task_id=g.task_id,
         artifacts_folder=remote_artifacts_dir,
         weights_folder=remote_weights_dir,
+        weights_ext=g.sly_mmdet.weights_ext,
         project_name=g.project_info.name,
         task_type=task_type,
         config_path=remote_config_path,
