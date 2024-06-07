@@ -191,7 +191,7 @@ def upload_artifacts_and_log_progress(task_type: str):
         g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
     )
 
-    g.sly_mmdet.generate_sly_metadata(
+    g.sly_mmdet.generate_metadata(
         app_name=g.sly_mmdet.app_name,
         task_id=g.task_id,
         artifacts_folder=remote_artifacts_dir,
