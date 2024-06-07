@@ -5,7 +5,7 @@ import supervisely as sly
 import shutil
 import zipfile
 import pkg_resources
-from supervisely.nn.checkpoints.mmdetection import MMDetectionCheckpoint
+from supervisely.nn.artifacts.mmdetection import MMDetection
 
 # from dotenv import load_dotenv
 
@@ -35,7 +35,7 @@ workspace_id = int(os.environ['context.workspaceId'])
 project_id = int(os.environ['modal.state.slyProjectId'])
 project_info = api.project.get_info_by_id(project_id)
 
-checkpoint = MMDetectionCheckpoint(team_id)
+sly_mmdet = MMDetection(team_id)
 
 # @TODO: for debug
 # sly.fs.clean_dir(my_app.data_dir)  

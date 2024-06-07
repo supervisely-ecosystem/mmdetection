@@ -182,24 +182,24 @@ def upload_artifacts_and_log_progress(task_type: str):
         upload_monitor, api=g.api, task_id=g.task_id, progress=progress
     )
 
-    model_dir = g.checkpoint.get_model_dir()
+    model_dir = g.sly_mmdet.framework_folder
     remote_artifacts_dir = f"{model_dir}/{g.task_id}_{g.project_info.name}"
-    remote_weights_dir = os.path.join(remote_artifacts_dir, g.checkpoint.weights_dir)
-    remote_config_path = os.path.join(remote_weights_dir, g.checkpoint.config_file)
+    remote_weights_dir = os.path.join(remote_artifacts_dir, g.sly_mmdet.weights_folder)
+    remote_config_path = os.path.join(remote_weights_dir, g.sly_mmdet.config_file)
 
     res_dir = g.api.file.upload_directory(
         g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
     )
 
-    g.checkpoint.generate_sly_metadata(
-        app_name=g.checkpoint.app_name,
-        session_id=g.task_id,
-        session_path=remote_artifacts_dir,
-        weeights_path=remote_weights_dir,
-        training_project_name=g.project_info.name,
+    g.sly_mmdet.generate_sly_metadata(
+        app_name=g.sly_mmdet.app_name,
+        task_id=g.task_id,
+        artifacts_folder=remote_artifacts_dir,
+        weights_folder=remote_weights_dir,
+        project_name=g.project_info.name,
         task_type=task_type,
         config_path=remote_config_path,
-    )
+    ) 
 
     return res_dir
 
