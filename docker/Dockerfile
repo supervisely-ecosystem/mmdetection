@@ -10,10 +10,11 @@ RUN pip3 install mmdet==2.22.0
 RUN pip3 install mmcls==0.23.1
 RUN pip3 install pyyaml==6.0
 RUN pip3 install scikit-learn==1.0.2
+RUN pip3 install yapf==0.40.1
 
-RUN pip3 install supervisely==6.73.96
 RUN pip3 install ffmpeg-python==0.2.0
 RUN pip3 install imagecorruptions==1.1.2
+RUN pip3 install supervisely==6.73.100
 
 RUN mkdir -p /tmp/mmdet \
     && wget https://github.com/open-mmlab/mmdetection/archive/refs/tags/v2.22.0.zip -P /tmp/mmdet

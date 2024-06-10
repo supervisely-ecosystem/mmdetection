@@ -5,6 +5,8 @@ import supervisely as sly
 import shutil
 import zipfile
 import pkg_resources
+from supervisely.nn.artifacts.mmdetection import MMDetection
+
 # from dotenv import load_dotenv
 
 root_source_dir = str(Path(sys.argv[0]).parents[2])
@@ -32,6 +34,8 @@ team_id = int(os.environ['context.teamId'])
 workspace_id = int(os.environ['context.workspaceId'])
 project_id = int(os.environ['modal.state.slyProjectId'])
 project_info = api.project.get_info_by_id(project_id)
+
+sly_mmdet = MMDetection(team_id)
 
 # @TODO: for debug
 # sly.fs.clean_dir(my_app.data_dir)  
