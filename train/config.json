@@ -12,7 +12,7 @@
     "train"
   ],
   "description": "Dashboard to configure, start and monitor training",
-  "docker_image": "supervisely/mmdet:1.0.8",
+  "docker_image": "supervisely/mmdet:1.0.9",
   "instance_version": "6.4.57",
   "main_script": "train/src/main.py",
   "gui_template": "train/src/gui.html",
@@ -32,6 +32,6 @@
   "poster": "https://user-images.githubusercontent.com/48245050/182853807-b549d606-3034-4e72-81b7-42eab6cc5738.jpg",
   "community_agent": false,
   "license": {
-    "type": "Apache-2.0" 
+    "type": "Apache-2.0"
   }
 }
