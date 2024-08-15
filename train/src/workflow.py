@@ -5,11 +5,9 @@ import supervisely as sly
 from supervisely.api.file_api import FileInfo
 
 def workflow_input(api: sly.Api, project_info: sly.ProjectInfo, state: dict = None):   
-    try:
-        sly.logger.debug(f"project_info.type: {project_info.type} (type: {type(project_info.type)})")
-        sly.logger.debug(f"sly.ProjectType.IMAGES: {sly.ProjectType.IMAGES} (type: {type(sly.ProjectType.IMAGES)})")
-        if project_info.type not in sly.ProjectType.IMAGES:
-            sly.logger.info(f"{project_info.type =} is not '{sly.ProjectType.IMAGES}'. Project version will not be created.")
+    try:       
+        if project_info.type != sly.ProjectType.IMAGES.__str__():
+            sly.logger.info(f"{project_info.type =} is not '{sly.ProjectType.IMAGES.__str__()}'. Project version will not be created.")
             project_version_id = None
         else:
             project_version_id = api.project.version.create(
