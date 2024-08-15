@@ -27,6 +27,7 @@ from mmdet.datasets import *
 from mmdet.apis import inference_detector
 import sly_mse_loss
 import sly_semantic_head
+import workflow as w
 
 root_source_path = str(Path(__file__).parents[2])
 app_source_path = str(Path(__file__).parents[1])
@@ -137,6 +138,8 @@ class MMDetectionModel(sly.nn.inference.InstanceSegmentation):
 
         self._model_meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection(obj_classes))
         self._get_confidence_tag_meta()
+        if model_source == "Custom models":
+             w.workflow_input(self.api, custom_weights_link)
         print(f"✅ Model has been successfully loaded on {device.upper()} device")
 
     def get_classes(self) -> List[str]:
