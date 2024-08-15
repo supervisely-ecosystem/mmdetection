@@ -7,7 +7,7 @@ from supervisely.api.file_api import FileInfo
 def workflow_input(api: sly.Api, project_info: sly.ProjectInfo, state: dict = None):   
     try:
         if project_info.type != sly.ProjectType.IMAGES:
-            sly.logger.info(f"Project type is not '{sly.ProjectType.IMAGES}'. Project version will not be created.")
+            sly.logger.info(f"Project '{project_info.type =}' is not '{sly.ProjectType.IMAGES}'. Project version will not be created.")
             project_version_id = None
         else:
             project_version_id = api.project.version.create(
@@ -18,6 +18,7 @@ def workflow_input(api: sly.Api, project_info: sly.ProjectInfo, state: dict = No
         project_version_id = None
 
     try:
+        file_info = None
         if project_version_id is None:
             project_version_id = project_info.version.get("id", None) if project_info.version else None
         api.app.workflow.add_input_project(project_info.id, version_id=project_version_id)
