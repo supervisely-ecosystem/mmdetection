@@ -54,7 +54,7 @@ def workflow_output(api: sly.Api, mmdet_generated_metadata: dict, state:dict):
         module_id = api.task.get_info_by_id(api.task_id).get("meta", {}).get("app", {}).get("id")
         
         if state.get("weightsInitialization", None) == "custom":
-            node_custom_title = "Custom Model"
+            node_custom_title = "Train Custom Model"
         else:
             node_custom_title = None
         if best_filename_info:

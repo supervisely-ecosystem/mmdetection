@@ -5,7 +5,7 @@ import supervisely as sly
 
 def workflow_input(api: sly.Api, checkpoint_url: str):   
     try:
-        node_settings = sly.WorkflowSettings(title="Custom Model")
+        node_settings = sly.WorkflowSettings(title="Serve Custom Model")
         meta = sly.WorkflowMeta(node_settings=node_settings)
         sly.logger.debug(f"Workflow Input: Checkpoint URL - {checkpoint_url}")
         if checkpoint_url and api.file.exists(sly.env.team_id(), checkpoint_url):
