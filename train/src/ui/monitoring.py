@@ -21,6 +21,8 @@ import sly_logger_hook
 import sly_semantic_head
 import sly_mse_loss
 
+import workflow as w
+
 _open_lnk_name = "open_app.lnk"
 
 
@@ -191,7 +193,7 @@ def upload_artifacts_and_log_progress(task_type: str):
         g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
     )
 
-    g.sly_mmdet.generate_metadata(
+    g.sly_mmdet_generated_metadata =  g.sly_mmdet.generate_metadata(
         app_name=g.sly_mmdet.app_name,
         task_id=g.task_id,
         artifacts_folder=remote_artifacts_dir,
@@ -252,6 +254,8 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         model.CLASSES = datasets[0].CLASSES
         model = revert_sync_batchnorm(model)
         train_detector(model, datasets, cfg, distributed=False, validate=True)
+        
+        w.workflow_input(api, g.project_info, state)
 
         # TODO: debug inference
         """
@@ -285,7 +289,8 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
-
+        
+        w.workflow_output(api, g.sly_mmdet_generated_metadata, state)
         # stop application
         g.my_app.stop()
 

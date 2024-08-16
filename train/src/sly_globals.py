@@ -70,3 +70,5 @@ if os.path.exists(zip_path) and os.path.isfile(zip_path) and not os.path.exists(
 os.makedirs(configs_dir, exist_ok=True)
 config_folders_cnt = len(os.listdir(configs_dir)) - 1
 sly.logger.info(f"Found {config_folders_cnt} folders in {configs_dir} directory.")
+
+sly_mmdet_generated_metadata = None # for project Workflow purposes
