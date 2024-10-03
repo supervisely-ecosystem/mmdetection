@@ -14,7 +14,9 @@ RUN pip3 install yapf==0.40.1
 
 RUN pip3 install ffmpeg-python==0.2.0
 RUN pip3 install imagecorruptions==1.1.2
-RUN pip3 install supervisely==6.73.158
+RUN pip3 install supervisely==6.73.202
 
 RUN mkdir -p /tmp/mmdet \
     && wget https://github.com/open-mmlab/mmdetection/archive/refs/tags/v2.22.0.zip -P /tmp/mmdet
+
+LABEL python_sdk_version=6.73.202
