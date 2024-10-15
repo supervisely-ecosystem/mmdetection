@@ -25,6 +25,8 @@ import sly_mse_loss
 import workflow as w
 
 _open_lnk_name = "open_app.lnk"
+current_dir = os.path.dirname(__file__)
+parent_dir = os.path.dirname(current_dir)
 
 
 def init(data, state):
@@ -198,11 +200,23 @@ def upload_artifacts_and_log_progress(task_type: str) -> Tuple[str, str]:
     sly.logger.debug(
         f"Starting upload of directory with path: {g.artifacts_dir} to Team files: {remote_artifacts_dir}"
     )
+
+    # Copy the generated artifcats directory to another local directory (create a copy).
+    copy_artifacts_dir = os.path.join(parent_dir, "artifacts")
+    sly.logger.debug(
+        f"Copying artifacts to: {copy_artifacts_dir} from: {g.artifacts_dir}"
+    )
+    sly.fs.copy_dir_recursively(g.artifacts_dir, copy_artifacts_dir)
+    sly.logger.debug(f"Artifacts were successfully copied to {copy_artifacts_dir}")
+
     res_dir = g.api.file.upload_directory(
-        g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
+        g.team_id,
+        copy_artifacts_dir,
+        remote_artifacts_dir,
+        progress_size_cb=progress_cb,
     )
 
-    local_link_path = _save_link_to_ui(g.artifacts_dir, g.my_app.app_url)
+    local_link_path = _save_link_to_ui(copy_artifacts_dir, g.my_app.app_url)
     sly.logger.debug(f"Local link path: {local_link_path}")
     remote_link_path = os.path.join(res_dir, _open_lnk_name)
     sly.logger.debug(f"Remote link path: {remote_link_path}")
