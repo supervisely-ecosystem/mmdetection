@@ -160,18 +160,18 @@ def change_smoothing(api: sly.Api, task_id, context, state, app_logger):
 
 
 def _save_link_to_ui(local_dir, app_url):
-    sly.logger.debug("Saving link to UI...")
+    sly.logger.debug("Creating link file for upload.")
     # save report to file *.lnk (link to report)
     local_path = os.path.join(local_dir, _open_lnk_name)
     sly.logger.debug(f"Local file path: {local_path}")
     sly.fs.ensure_base_path(local_path)
     with open(local_path, "w") as text_file:
-        print(app_url, file=text_file)
+        text_file.write(app_url + "\n")
+    sly.logger.debug("Link file was successfully created.")
 
 
 def upload_artifacts_and_log_progress(task_type: str):
-    sly.logger.debug("Save link to UI was disabled.")
-    # _save_link_to_ui(g.artifacts_dir, g.my_app.app_url)
+    _save_link_to_ui(g.artifacts_dir, g.my_app.app_url)
 
     def upload_monitor(monitor, api: sly.Api, task_id, progress: sly.Progress):
         if progress.total == 0:
@@ -193,12 +193,14 @@ def upload_artifacts_and_log_progress(task_type: str):
     remote_weights_dir = os.path.join(remote_artifacts_dir, g.sly_mmdet.weights_folder)
     remote_config_path = os.path.join(remote_weights_dir, g.sly_mmdet.config_file)
 
-    sly.logger.debug(f"Starting upload of directory with path: {g.artifacts_dir} to Team files: {remote_artifacts_dir}")
+    sly.logger.debug(
+        f"Starting upload of directory with path: {g.artifacts_dir} to Team files: {remote_artifacts_dir}"
+    )
     res_dir = g.api.file.upload_directory(
         g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
     )
 
-    g.sly_mmdet_generated_metadata =  g.sly_mmdet.generate_metadata(
+    g.sly_mmdet_generated_metadata = g.sly_mmdet.generate_metadata(
         app_name=g.sly_mmdet.app_name,
         task_id=g.task_id,
         artifacts_folder=remote_artifacts_dir,
@@ -207,7 +209,7 @@ def upload_artifacts_and_log_progress(task_type: str):
         project_name=g.project_info.name,
         task_type=task_type,
         config_path=remote_config_path,
-    ) 
+    )
 
     return res_dir
 
@@ -259,7 +261,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         model.CLASSES = datasets[0].CLASSES
         model = revert_sync_batchnorm(model)
         train_detector(model, datasets, cfg, distributed=False, validate=True)
-        
+
         w.workflow_input(api, g.project_info, state)
 
         # TODO: debug inference
@@ -294,7 +296,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
-        
+
         w.workflow_output(api, g.sly_mmdet_generated_metadata, state)
         # stop application
         g.my_app.stop()
