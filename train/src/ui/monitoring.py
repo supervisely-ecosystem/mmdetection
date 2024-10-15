@@ -160,8 +160,10 @@ def change_smoothing(api: sly.Api, task_id, context, state, app_logger):
 
 
 def _save_link_to_ui(local_dir, app_url):
+    sly.logger.debug("Saving link to UI...")
     # save report to file *.lnk (link to report)
     local_path = os.path.join(local_dir, _open_lnk_name)
+    sly.logger.debug(f"Local file path: {local_path}")
     sly.fs.ensure_base_path(local_path)
     with open(local_path, "w") as text_file:
         print(app_url, file=text_file)
@@ -177,6 +179,7 @@ def upload_artifacts_and_log_progress(task_type: str):
             progress.set_current_value(monitor.bytes_read, report=False)
         _update_progress_ui("UploadDir", g.api, g.task_id, progress)
 
+    sly.logger.debug("Creating progress Progress bar...")
     progress = sly.Progress(
         "Upload directory with training artifacts to Team Files", 0, is_size=True
     )
@@ -189,6 +192,7 @@ def upload_artifacts_and_log_progress(task_type: str):
     remote_weights_dir = os.path.join(remote_artifacts_dir, g.sly_mmdet.weights_folder)
     remote_config_path = os.path.join(remote_weights_dir, g.sly_mmdet.config_file)
 
+    sly.logger.debug(f"Starting upload of directory with path: {g.artifacts_dir} to Team files: {remote_artifacts_dir}")
     res_dir = g.api.file.upload_directory(
         g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
     )
