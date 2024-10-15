@@ -2,6 +2,7 @@ import supervisely as sly
 from sly_train_progress import init_progress, _update_progress_ui
 import sly_globals as g
 import os
+from typing import Tuple
 from functools import partial
 from mmcv.cnn.utils import revert_sync_batchnorm
 from mmdet.apis import train_detector  # , inference_detector, show_result_pyplot
@@ -24,6 +25,8 @@ import sly_mse_loss
 import workflow as w
 
 _open_lnk_name = "open_app.lnk"
+current_dir = os.path.dirname(__file__)
+parent_dir = os.path.dirname(current_dir)
 
 
 def init(data, state):
@@ -159,16 +162,20 @@ def change_smoothing(api: sly.Api, task_id, context, state, app_logger):
     g.api.app.set_fields(g.task_id, fields)
 
 
-def _save_link_to_ui(local_dir, app_url):
+def _save_link_to_ui(local_dir, app_url) -> str:
+    sly.logger.debug("Creating link file for upload.")
     # save report to file *.lnk (link to report)
     local_path = os.path.join(local_dir, _open_lnk_name)
+    sly.logger.debug(f"Local file path: {local_path}")
     sly.fs.ensure_base_path(local_path)
     with open(local_path, "w") as text_file:
-        print(app_url, file=text_file)
+        text_file.write(app_url + "\n")
+    sly.logger.debug("Link file was successfully created.")
+
+    return local_path
 
 
-def upload_artifacts_and_log_progress(task_type: str):
-    _save_link_to_ui(g.artifacts_dir, g.my_app.app_url)
+def upload_artifacts_and_log_progress(task_type: str) -> Tuple[str, str]:
 
     def upload_monitor(monitor, api: sly.Api, task_id, progress: sly.Progress):
         if progress.total == 0:
@@ -177,6 +184,7 @@ def upload_artifacts_and_log_progress(task_type: str):
             progress.set_current_value(monitor.bytes_read, report=False)
         _update_progress_ui("UploadDir", g.api, g.task_id, progress)
 
+    sly.logger.debug("Creating progress Progress bar...")
     progress = sly.Progress(
         "Upload directory with training artifacts to Team Files", 0, is_size=True
     )
@@ -189,11 +197,35 @@ def upload_artifacts_and_log_progress(task_type: str):
     remote_weights_dir = os.path.join(remote_artifacts_dir, g.sly_mmdet.weights_folder)
     remote_config_path = os.path.join(remote_weights_dir, g.sly_mmdet.config_file)
 
-    res_dir = g.api.file.upload_directory(
-        g.team_id, g.artifacts_dir, remote_artifacts_dir, progress_size_cb=progress_cb
+    sly.logger.debug(
+        f"Starting upload of directory with path: {g.artifacts_dir} to Team files: {remote_artifacts_dir}"
     )
 
-    g.sly_mmdet_generated_metadata =  g.sly_mmdet.generate_metadata(
+    # Copy the generated artifcats directory to another local directory (create a copy).
+    copy_artifacts_dir = os.path.join(parent_dir, "artifacts")
+    sly.logger.debug(
+        f"Copying artifacts to: {copy_artifacts_dir} from: {g.artifacts_dir}"
+    )
+    sly.fs.copy_dir_recursively(g.artifacts_dir, copy_artifacts_dir)
+    sly.logger.debug(f"Artifacts were successfully copied to {copy_artifacts_dir}")
+
+    res_dir = g.api.file.upload_directory(
+        g.team_id,
+        copy_artifacts_dir,
+        remote_artifacts_dir,
+        progress_size_cb=progress_cb,
+    )
+
+    local_link_path = _save_link_to_ui(copy_artifacts_dir, g.my_app.app_url)
+    sly.logger.debug(f"Local link path: {local_link_path}")
+    remote_link_path = os.path.join(res_dir, _open_lnk_name)
+    sly.logger.debug(f"Remote link path: {remote_link_path}")
+
+    sly.logger.debug(f"Uploading link to Team files: {remote_link_path}")
+    link_file_id = g.api.file.upload(g.team_id, local_link_path, remote_link_path)
+    sly.logger.debug(f"Link was successfully uploaded. File ID: {link_file_id}")
+
+    g.sly_mmdet_generated_metadata = g.sly_mmdet.generate_metadata(
         app_name=g.sly_mmdet.app_name,
         task_id=g.task_id,
         artifacts_folder=remote_artifacts_dir,
@@ -202,9 +234,9 @@ def upload_artifacts_and_log_progress(task_type: str):
         project_name=g.project_info.name,
         task_type=task_type,
         config_path=remote_config_path,
-    ) 
+    )
 
-    return res_dir
+    return res_dir, link_file_id
 
 
 def init_class_charts_series(state):
@@ -254,7 +286,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         model.CLASSES = datasets[0].CLASSES
         model = revert_sync_batchnorm(model)
         train_detector(model, datasets, cfg, distributed=False, validate=True)
-        
+
         w.workflow_input(api, g.project_info, state)
 
         # TODO: debug inference
@@ -276,20 +308,20 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         ]
         g.api.app.set_fields(g.task_id, fields)
 
-        remote_dir = upload_artifacts_and_log_progress(task_type)
-        file_info = api.file.get_info_by_path(
-            g.team_id, os.path.join(remote_dir, _open_lnk_name)
-        )
-        api.task.set_output_directory(task_id, file_info.id, remote_dir)
+        remote_dir, link_file_id = upload_artifacts_and_log_progress(task_type)
+        # file_info = api.file.get_info_by_path(
+        #     g.team_id, os.path.join(remote_dir, _open_lnk_name)
+        # )
+        api.task.set_output_directory(task_id, link_file_id, remote_dir)
 
         fields = [
-            {"field": "data.outputUrl", "payload": g.api.file.get_url(file_info.id)},
+            {"field": "data.outputUrl", "payload": g.api.file.get_url(link_file_id)},
             {"field": "data.outputName", "payload": remote_dir},
             {"field": "state.doneMonitoring", "payload": True},
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
-        
+
         w.workflow_output(api, g.sly_mmdet_generated_metadata, state)
         # stop application
         g.my_app.stop()
