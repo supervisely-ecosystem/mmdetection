@@ -170,7 +170,8 @@ def _save_link_to_ui(local_dir, app_url):
 
 
 def upload_artifacts_and_log_progress(task_type: str):
-    _save_link_to_ui(g.artifacts_dir, g.my_app.app_url)
+    sly.logger.debug("Save link to UI was disabled.")
+    # _save_link_to_ui(g.artifacts_dir, g.my_app.app_url)
 
     def upload_monitor(monitor, api: sly.Api, task_id, progress: sly.Progress):
         if progress.total == 0:
