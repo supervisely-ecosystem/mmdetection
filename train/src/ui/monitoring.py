@@ -177,8 +177,9 @@ def upload_artifacts_and_log_progress(task_type: str):
             progress.set_current_value(monitor.bytes_read, report=False)
         _update_progress_ui("UploadDir", g.api, g.task_id, progress)
 
+    dir_size = sly.fs.get_directory_size(g.artifacts_dir)
     progress = sly.Progress(
-        "Upload directory with training artifacts to Team Files", 0, is_size=True
+        "Upload directory with training artifacts to Team Files", dir_size, is_size=True
     )
     progress_cb = partial(
         upload_monitor, api=g.api, task_id=g.task_id, progress=progress
