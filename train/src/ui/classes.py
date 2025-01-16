@@ -89,7 +89,7 @@ def get_items_to_ignore(selected_classes, task):
     items_to_ignore = {}
     for dataset in g.api.dataset.get_list(g.project_id):
         items_to_ignore[dataset.name] = []
-        image_ids = [img_info.id for img_info in g.api.image.get_list(dataset.id)
+        image_ids = [img_info.id for img_info in g.api.image.get_list(dataset.id)]
         for ann_info in g.api.annotation.download_batch(dataset.id, image_ids):
             ann_objects = ann_info.annotation["objects"]
             labels_to_include = [label for label in ann_objects if label["classTitle"] in selected_classes]
