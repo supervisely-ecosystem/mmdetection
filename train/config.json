@@ -12,8 +12,8 @@
     "train"
   ],
   "description": "Dashboard to configure, start and monitor training",
-  "docker_image": "supervisely/mmdet:1.0.14",
-  "instance_version": "6.11.19",
+  "docker_image": "supervisely/mmdet:1.0.15",
+  "instance_version": "6.12.44",
   "main_script": "train/src/main.py",
   "gui_template": "train/src/gui.html",
   "task_location": "workspace_tasks",

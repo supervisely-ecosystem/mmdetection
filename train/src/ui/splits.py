@@ -263,6 +263,8 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
             train_set, val_set, ignored_untagged_cnt, ignored_double_tagged_cnt = get_train_val_sets(state)
         else:
             train_set, val_set = get_train_val_sets(state)
+            
+        g.train_size, g.val_size = len(train_set), len(val_set)
         success = verify_train_val_sets(train_set, val_set)
         if not success:
             api.task.set_field(task_id, "state.splitInProgress", False)
@@ -278,6 +280,7 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
     except Exception as e:
         train_set = None
         val_set = None
+        g.train_size, g.val_size = None, None
         step_done = False
         raise e
     finally:
