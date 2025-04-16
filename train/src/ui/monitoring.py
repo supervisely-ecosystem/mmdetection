@@ -297,6 +297,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         api.task.set_output_directory(task_id, file_info.id, remote_dir)
        
         try:
+            sly.logger.info("Creating experiment")
             create_experiment(state["pretrainedModel"], remote_dir)
         except Exception as e:
             sly.logger.warning(
