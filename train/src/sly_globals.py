@@ -72,3 +72,4 @@ config_folders_cnt = len(os.listdir(configs_dir)) - 1
 sly.logger.info(f"Found {config_folders_cnt} folders in {configs_dir} directory.")
 
 sly_mmdet_generated_metadata = None # for project Workflow purposes
+train_size, val_size = None, None

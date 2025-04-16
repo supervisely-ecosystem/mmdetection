@@ -8,6 +8,15 @@ from mmdet.apis import train_detector  # , inference_detector, show_result_pyplo
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 from init_cfg import init_cfg
+from dataclasses import asdict
+from supervisely.nn.artifacts.artifacts import TrainInfo
+
+# Benchmark
+# import math
+# from supervisely.nn.inference import SessionJSON
+# from supervisely.nn.utils import ModelSource
+# from sly_functions import get_eval_results_dir_name
+# from splits import get_train_val_sets
 
 # import mmcv
 # import cv2
@@ -44,6 +53,9 @@ def init(data, state):
     state["preparingData"] = False
     data["outputName"] = None
     data["outputUrl"] = None
+    
+    # data["benchmarkUrl"] = None
+    # state["benchmarkInProgress"] = False
 
 
 def init_chart(
@@ -129,6 +141,47 @@ def init_charts(data, state):
         "Memory", names=["memory"], xs=[[]], ys=[[]], xdecimals=2
     )
 
+# def external_update_callback(progress: sly.tqdm_sly, progress_name: str):
+#     percent = math.floor(progress.n / progress.total * 100)
+#     fields = []
+#     if hasattr(progress, "desc"):
+#         fields.append({"field": f"data.progress{progress_name}", "payload": progress.desc})
+#     elif hasattr(progress, "message"):
+#         fields.append({"field": f"data.progress{progress_name}", "payload": progress.message})
+#     fields += [
+#         {"field": f"data.progressCurrent{progress_name}", "payload": progress.n},
+#         {"field": f"data.progressTotal{progress_name}", "payload": progress.total},
+#         {"field": f"data.progressPercent{progress_name}", "payload": percent},
+#     ]
+#     g.api.app.set_fields(g.task_id, fields)
+
+# def external_close_callback(progress: sly.tqdm_sly, progress_name: str):
+#     fields = [
+#         {"field": f"data.progress{progress_name}", "payload": None},
+#         {"field": f"data.progressCurrent{progress_name}", "payload": None},
+#         {"field": f"data.progressTotal{progress_name}", "payload": None},
+#         {"field": f"data.progressPercent{progress_name}", "payload": None},
+#     ]
+#     g.api.app.set_fields(g.task_id, fields)
+
+# class TqdmBenchmark(sly.tqdm_sly):
+#     def update(self, n=1):
+#         super().update(n)
+#         external_update_callback(self, "Benchmark")
+
+#     def close(self):
+#         super().close()
+#         external_close_callback(self, "Benchmark")
+
+
+# class TqdmProgress(sly.tqdm_sly):
+#     def update(self, n=1):
+#         super().update(n)
+#         external_update_callback(self, "Tqdm")
+
+#     def close(self):
+#         super().close()
+#         external_close_callback(self, "Tqdm")
 
 @g.my_app.callback("change_smoothing")
 @sly.timeit
@@ -294,6 +347,19 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             g.team_id, os.path.join(remote_dir, _open_lnk_name)
         )
         api.task.set_output_directory(task_id, file_info.id, remote_dir)
+        # report_id, eval_metrics, primary_metric_name = None, None, None
+        # sly.logger.info(f"Run benchmark: {state['runBenchmark']}")
+        # if state["runBenchmark"]:
+        #     report_id, eval_metrics, primary_metric_name = run_benchmark(
+        #         api, task_id, state["selectedClasses"], state, remote_dir
+        #     )
+        
+        try:
+            create_experiment(state["pretrainedModel"], remote_dir)
+        except Exception as e:
+            sly.logger.warning(
+                f"Couldn't create experiment, this training session will not appear in experiments table. Error: {e}"
+            )
 
         fields = [
             {"field": "data.outputUrl", "payload": g.api.file.get_url(file_info.id)},
@@ -311,3 +377,29 @@ def train(api: sly.Api, task_id, context, state, app_logger):
         g.api.app.set_field(task_id, "state.started", False)
         sly.logger.info(e)
         raise e  # app will handle this error and show modal window
+
+
+def create_experiment(model_name, remote_dir):
+    train_info = TrainInfo(**g.sly_mmdet_generated_metadata)
+    experiment_info = g.sly_mmdet.convert_train_to_experiment_info(train_info)
+    experiment_info.experiment_name = f"{g.task_id}_{g.project_info.name}_{model_name}"
+    experiment_info.model_name = model_name
+    experiment_info.framework_name = f"{g.sly_mmseg.framework_name}"
+    experiment_info.train_size = g.train_size
+    experiment_info.val_size = g.val_size
+    experiment_info.evaluation_report_id = None
+    experiment_info.evaluation_report_link = None
+    experiment_info.evaluation_metrics = None
+
+    experiment_info_json = asdict(experiment_info)
+    experiment_info_json["project_preview"] = g.project_info.image_preview_url
+
+    g.api.task.set_output_experiment(g.task_id, experiment_info_json)
+    experiment_info_json.pop("project_preview")
+
+    experiment_info_path = os.path.join(g.artifacts_dir, "experiment_info.json")
+    remote_experiment_info_path = os.path.join(remote_dir, "experiment_info.json")
+    sly.json.dump_json_file(experiment_info_json, experiment_info_path)
+    g.api.file.upload(g.team_id, experiment_info_path, remote_experiment_info_path)
+
+
