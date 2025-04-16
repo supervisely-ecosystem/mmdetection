@@ -11,13 +11,6 @@ from init_cfg import init_cfg
 from dataclasses import asdict
 from supervisely.nn.artifacts.artifacts import TrainInfo
 
-# Benchmark
-# import math
-# from supervisely.nn.inference import SessionJSON
-# from supervisely.nn.utils import ModelSource
-# from sly_functions import get_eval_results_dir_name
-# from splits import get_train_val_sets
-
 # import mmcv
 # import cv2
 # import splits
@@ -53,9 +46,6 @@ def init(data, state):
     state["preparingData"] = False
     data["outputName"] = None
     data["outputUrl"] = None
-    
-    # data["benchmarkUrl"] = None
-    # state["benchmarkInProgress"] = False
 
 
 def init_chart(
@@ -140,48 +130,6 @@ def init_charts(data, state):
     state["chartMemory"] = init_chart(
         "Memory", names=["memory"], xs=[[]], ys=[[]], xdecimals=2
     )
-
-# def external_update_callback(progress: sly.tqdm_sly, progress_name: str):
-#     percent = math.floor(progress.n / progress.total * 100)
-#     fields = []
-#     if hasattr(progress, "desc"):
-#         fields.append({"field": f"data.progress{progress_name}", "payload": progress.desc})
-#     elif hasattr(progress, "message"):
-#         fields.append({"field": f"data.progress{progress_name}", "payload": progress.message})
-#     fields += [
-#         {"field": f"data.progressCurrent{progress_name}", "payload": progress.n},
-#         {"field": f"data.progressTotal{progress_name}", "payload": progress.total},
-#         {"field": f"data.progressPercent{progress_name}", "payload": percent},
-#     ]
-#     g.api.app.set_fields(g.task_id, fields)
-
-# def external_close_callback(progress: sly.tqdm_sly, progress_name: str):
-#     fields = [
-#         {"field": f"data.progress{progress_name}", "payload": None},
-#         {"field": f"data.progressCurrent{progress_name}", "payload": None},
-#         {"field": f"data.progressTotal{progress_name}", "payload": None},
-#         {"field": f"data.progressPercent{progress_name}", "payload": None},
-#     ]
-#     g.api.app.set_fields(g.task_id, fields)
-
-# class TqdmBenchmark(sly.tqdm_sly):
-#     def update(self, n=1):
-#         super().update(n)
-#         external_update_callback(self, "Benchmark")
-
-#     def close(self):
-#         super().close()
-#         external_close_callback(self, "Benchmark")
-
-
-# class TqdmProgress(sly.tqdm_sly):
-#     def update(self, n=1):
-#         super().update(n)
-#         external_update_callback(self, "Tqdm")
-
-#     def close(self):
-#         super().close()
-#         external_close_callback(self, "Tqdm")
 
 @g.my_app.callback("change_smoothing")
 @sly.timeit
@@ -347,13 +295,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             g.team_id, os.path.join(remote_dir, _open_lnk_name)
         )
         api.task.set_output_directory(task_id, file_info.id, remote_dir)
-        # report_id, eval_metrics, primary_metric_name = None, None, None
-        # sly.logger.info(f"Run benchmark: {state['runBenchmark']}")
-        # if state["runBenchmark"]:
-        #     report_id, eval_metrics, primary_metric_name = run_benchmark(
-        #         api, task_id, state["selectedClasses"], state, remote_dir
-        #     )
-        
+       
         try:
             create_experiment(state["pretrainedModel"], remote_dir)
         except Exception as e:
