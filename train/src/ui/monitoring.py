@@ -295,14 +295,12 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             g.team_id, os.path.join(remote_dir, _open_lnk_name)
         )
         api.task.set_output_directory(task_id, file_info.id, remote_dir)
-       
+
         try:
             sly.logger.info("Creating experiment")
             create_experiment(state["pretrainedModel"], remote_dir)
         except Exception as e:
-            sly.logger.warning(
-                f"Couldn't create experiment, this training session will not appear in experiments table. Error: {e}"
-            )
+            sly.logger.error(f"Couldn't create experiment, this training session will not appear in the experiments table. Error: {e}")
 
         fields = [
             {"field": "data.outputUrl", "payload": g.api.file.get_url(file_info.id)},
@@ -311,7 +309,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
-        
+
         w.workflow_output(api, g.sly_mmdet_generated_metadata, state)
         # stop application
         g.my_app.stop()
