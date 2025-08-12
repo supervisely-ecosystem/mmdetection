@@ -330,9 +330,10 @@ def create_experiment(model_name, remote_dir):
     experiment_info.framework_name = f"{g.sly_mmdet.framework_name}"
     experiment_info.train_size = g.train_size
     experiment_info.val_size = g.val_size
-    experiment_info.evaluation_report_id = None
     experiment_info.evaluation_report_link = None
     experiment_info.evaluation_metrics = None
+    experiment_info.evaluation_report_id = None
+    experiment_info.experiment_report_id = None
 
     experiment_info_json = asdict(experiment_info)
     experiment_info_json["project_preview"] = g.project_info.image_preview_url
