@@ -325,7 +325,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 def create_experiment(model_name, remote_dir):
     train_info = TrainInfo(**g.sly_mmdet_generated_metadata)
     experiment_info = g.sly_mmdet.convert_train_to_experiment_info(train_info)
-    experiment_info.experiment_name = f"{g.task_id}_{g.project_info.name}_{model_name}"
+    experiment_info.experiment_name = f"{g.task_id} {g.project_info.name} {model_name}"
     experiment_info.model_name = model_name
     experiment_info.framework_name = f"{g.sly_mmdet.framework_name}"
     experiment_info.train_size = g.train_size
@@ -344,5 +344,3 @@ def create_experiment(model_name, remote_dir):
     remote_experiment_info_path = os.path.join(remote_dir, "experiment_info.json")
     sly.json.dump_json_file(experiment_info_json, experiment_info_path)
     g.api.file.upload(g.team_id, experiment_info_path, remote_experiment_info_path)
-
-
