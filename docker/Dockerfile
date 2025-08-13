@@ -3,7 +3,10 @@ FROM supervisely/base-py-sdk:6.73.418
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y ffmpeg
 
-RUN pip install setuptools==69.5.1
+# For PyTorch 1.10.0
+RUN pip3 install --no-cache-dir setuptools==59.5.0
+# ---------------------------------------------- #
+
 RUN pip3 install -U torch==1.10.0+cu111 torchvision==0.11.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 RUN pip3 install mmcv-full==1.4.2 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.10.0/index.html -U
 
