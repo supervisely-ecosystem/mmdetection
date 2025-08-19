@@ -18,6 +18,6 @@ RUN pip3 install imagecorruptions==1.1.2
 RUN mkdir -p /tmp/mmdet \
 && wget https://github.com/open-mmlab/mmdetection/archive/refs/tags/v2.22.0.zip -P /tmp/mmdet
 
-RUN pip3 install supervisely==6.73.347
+RUN pip3 install supervisely==6.73.419
 
-LABEL python_sdk_version=6.73.347
+LABEL python_sdk_version=6.73.419
