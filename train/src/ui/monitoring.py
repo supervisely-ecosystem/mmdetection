@@ -295,14 +295,12 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             g.team_id, os.path.join(remote_dir, _open_lnk_name)
         )
         api.task.set_output_directory(task_id, file_info.id, remote_dir)
-       
+
         try:
             sly.logger.info("Creating experiment")
             create_experiment(state["pretrainedModel"], remote_dir)
         except Exception as e:
-            sly.logger.warning(
-                f"Couldn't create experiment, this training session will not appear in experiments table. Error: {e}"
-            )
+            sly.logger.error(f"Couldn't create experiment, this training session will not appear in the experiments table. Error: {e}")
 
         fields = [
             {"field": "data.outputUrl", "payload": g.api.file.get_url(file_info.id)},
@@ -311,7 +309,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
             {"field": "state.started", "payload": False},
         ]
         g.api.app.set_fields(g.task_id, fields)
-        
+
         w.workflow_output(api, g.sly_mmdet_generated_metadata, state)
         # stop application
         g.my_app.stop()
@@ -325,14 +323,15 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 def create_experiment(model_name, remote_dir):
     train_info = TrainInfo(**g.sly_mmdet_generated_metadata)
     experiment_info = g.sly_mmdet.convert_train_to_experiment_info(train_info)
-    experiment_info.experiment_name = f"{g.task_id}_{g.project_info.name}_{model_name}"
+    experiment_info.experiment_name = f"{g.task_id} {g.project_info.name} {model_name}"
     experiment_info.model_name = model_name
     experiment_info.framework_name = f"{g.sly_mmdet.framework_name}"
     experiment_info.train_size = g.train_size
     experiment_info.val_size = g.val_size
-    experiment_info.evaluation_report_id = None
     experiment_info.evaluation_report_link = None
     experiment_info.evaluation_metrics = None
+    experiment_info.evaluation_report_id = None
+    experiment_info.experiment_report_id = None
 
     experiment_info_json = asdict(experiment_info)
     experiment_info_json["project_preview"] = g.project_info.image_preview_url
@@ -344,5 +343,3 @@ def create_experiment(model_name, remote_dir):
     remote_experiment_info_path = os.path.join(remote_dir, "experiment_info.json")
     sly.json.dump_json_file(experiment_info_json, experiment_info_path)
     g.api.file.upload(g.team_id, experiment_info_path, remote_experiment_info_path)
-
-
