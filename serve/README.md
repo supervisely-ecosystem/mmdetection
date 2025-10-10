@@ -13,7 +13,7 @@
   <a href="#Acknowledgment">Acknowledgment</a>
 </p>
 
-[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](../../../../supervisely-ecosystem/mmdetection/serve)
+[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](../../../../../supervisely-ecosystem/mmdetection/serve)
 [![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervisely.com/slack)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/mmdetection)
 [![views](https://app.supervisely.com/img/badges/views/supervisely-ecosystem/mmdetection/serve.png)](https://supervisely.com)
@@ -33,7 +33,7 @@ Application key points:
 
 # How to Run
 
-**Step 1.** Add [Serve MMDetection](../../../../supervisely-ecosystem/mmdetection/serve) to your team
+**Step 1.** Add [Serve MMDetection](../../../../../supervisely-ecosystem/mmdetection/serve) to your team
 
 <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/serve" src="https://i.imgur.com/R5nCKt2.png" width="350px" style='padding-bottom: 10px'/>
 
@@ -59,7 +59,7 @@ Application key points:
 
 **Custom models**
 
-Model and directory structure must be acquired via [Train MMDetection](../../../../supervisely-ecosystem/mmdetection/train) app or manually created with the same directory structure
+Model and directory structure must be acquired via [Train MMDetection](../../../../../supervisely-ecosystem/mmdetection/train) app or manually created with the same directory structure
 
 <img src="https://github.com/supervisely-ecosystem/mmdetection/releases/download/v0.0.1/copy-path-min.gif"/>  
 
@@ -72,7 +72,7 @@ You can use your trained models outside Supervisely platform without any depende
 # Related Apps
 
 
-- [Train MMDetection](../../../../supervisely-ecosystem/mmdetection/train) - app allows to play with different inference options, monitor metrics charts in real time, and save training artifacts to Team Files.  
+- [Train MMDetection](../../../../../supervisely-ecosystem/mmdetection/train) - app allows to play with different inference options, monitor metrics charts in real time, and save training artifacts to Team Files.  
   <img data-key="sly-module-link" data-module-slug="supervisely-ecosystem/mmdetection/train" src="https://i.imgur.com/92PoYV7.png" height="60px" margin-bottom="20px"/>
 
 - [Apply NN to Images Project](../../../../supervisely-ecosystem/supervisely-ecosystem%252Fnn-image-labeling%252Fproject-dataset) - app allows to play with different inference options and visualize predictions in real time.  Once you choose inference settings you can apply model to all images in your project to visually analyse predictions and perform automatic data pre-labeling.   
