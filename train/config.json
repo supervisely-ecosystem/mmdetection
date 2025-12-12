@@ -1,37 +1,37 @@
 {
-  "name": "Train MMDetection",
-  "type": "app",
-  "categories": [
-    "neural network",
-    "images",
-    "videos",
-    "object detection",
-    "instance segmentation",
-    "detection & tracking",
-    "segmentation & tracking",
-    "train"
-  ],
-  "description": "Dashboard to configure, start and monitor training",
-  "docker_image": "supervisely/mmdet:1.0.16",
-  "instance_version": "6.15.0",
-  "main_script": "train/src/main.py",
-  "gui_template": "train/src/gui.html",
-  "task_location": "workspace_tasks",
-  "need_gpu": true,
-  "gpu": "required",
-  "isolate": true,
-  "icon": "https://i.imgur.com/C7TLPYB.png",
-  "icon_cover": true,
-  "context_menu": {
-    "target": [
-      "images_project"
+    "name": "Train MMDetection",
+    "type": "app",
+    "categories": [
+        "neural network",
+        "images",
+        "videos",
+        "object detection",
+        "instance segmentation",
+        "detection & tracking",
+        "segmentation & tracking",
+        "train"
     ],
-    "context_root": "Neural Networks",
-    "context_category": "MM Detection"
-  },
-  "poster": "https://user-images.githubusercontent.com/48245050/182853807-b549d606-3034-4e72-81b7-42eab6cc5738.jpg",
-  "community_agent": false,
-  "license": {
-    "type": "Apache-2.0"
-  }
+    "description": "Dashboard to configure, start and monitor training",
+    "docker_image": "supervisely/mmdet:1.0.17",
+    "instance_version": "6.15.35",
+    "main_script": "train/src/main.py",
+    "gui_template": "train/src/gui.html",
+    "task_location": "workspace_tasks",
+    "need_gpu": true,
+    "gpu": "required",
+    "isolate": true,
+    "icon": "https://i.imgur.com/C7TLPYB.png",
+    "icon_cover": true,
+    "context_menu": {
+        "target": [
+            "images_project"
+        ],
+        "context_root": "Neural Networks",
+        "context_category": "MM Detection"
+    },
+    "poster": "https://user-images.githubusercontent.com/48245050/182853807-b549d606-3034-4e72-81b7-42eab6cc5738.jpg",
+    "community_agent": false,
+    "license": {
+        "type": "Apache-2.0"
+    }
 }
