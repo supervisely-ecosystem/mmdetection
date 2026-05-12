@@ -1,13 +1,17 @@
 # git+https://github.com/supervisely/supervisely.git@some-test-branch
 
-supervisely[agent] @ git+https://github.com/supervisely/supervisely.git@upgrade-protobuf
+supervisely[agent,model-benchmark] @ git+https://github.com/supervisely/supervisely.git@upgrade-protobuf
 
-torch==1.13.0
-torchvision==0.14.0
-openmim
-mmcv-full==1.7.0
-mmdet==2.28.2
-mmcls==0.24.1
+-f https://download.pytorch.org/whl/torch_stable.html
+-f https://download.openmmlab.com/mmcv/dist/cu111/torch1.10.0/index.html
+torch==1.10.0+cu111
+torchvision==0.11.0+cu111
+mmcv-full==1.4.2
+mmdet==2.22.0
+mmcls==0.23.1
+pyyaml==6.0
+scikit-learn==1.0.2
+yapf==0.40.1
 
 ffmpeg-python==0.2.0
 imagecorruptions==1.1.2
